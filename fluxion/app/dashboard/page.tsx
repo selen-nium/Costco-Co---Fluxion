@@ -27,7 +27,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
   };
 
   return (
-    <Link href={`/project/${project.id}`} className="block">
+    <Link href={`/project/${project.id}/interface`} className="block">
       <div className="bg-white rounded-lg border border-input overflow-hidden hover:shadow-md transition-shadow">
         <div className="relative">
           <img 

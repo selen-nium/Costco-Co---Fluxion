@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { ProjectService } from '@/lib/project-service';
 import { toast } from '@/components/ui/use-toast';
+import html2pdf from 'html2pdf.js';
 
 export default function ProjectPage({ params }: { params: { projectId: string } }) {
   const { projectId } = params;
@@ -30,10 +31,20 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
   const [isDeleting, setIsDeleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // New states for todo popup
+  // States for popups
   const [todoPopupOpen, setTodoPopupOpen] = useState(false);
+  const [ganttChartPopupOpen, setGanttChartPopupOpen] = useState(false);
+  const [changeManagementPopupOpen, setChangeManagementPopupOpen] = useState(false);
+  
+  // States for content
   const [todoContent, setTodoContent] = useState<string>('');
+  const [ganttChartContent, setGanttChartContent] = useState<string>('');
+  const [changeManagementContent, setChangeManagementContent] = useState<string>('');
+  
+  // Loading states
   const [generateTodoLoading, setGenerateTodoLoading] = useState(false);
+  const [generateGanttChartLoading, setGenerateGanttChartLoading] = useState(false);
+  const [generateChangeManagementLoading, setGenerateChangeManagementLoading] = useState(false);
 
   // Fetch project when user is authenticated
   useEffect(() => {
@@ -177,10 +188,201 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
     }
   };
 
-  // Dummy function for the other generation buttons
+  // Function to generate Gantt chart
+  const handleGenerateGanttChart = async () => {
+    setGenerateGanttChartLoading(true);
+    try {
+      // Create a prompt based on project details
+      const prompt = `
+        Generate a Gantt chart (in mermaid syntax) for the following project:
+        
+        Project Name: ${project.name}
+        Description: ${project.description}
+        Objective: ${project.objective}
+        Scale: ${project.scale}
+        Timeline: ${getTimelineText(project.timeline)}
+        Stakeholders: ${getStakeholderNames().join(', ')}
+        Additional Info: ${project.additional_info || 'N/A'}
+        
+        Create a detailed Gantt chart that includes key milestones, tasks, and dependencies that will help successfully complete this project.
+        Include planning, execution, monitoring, and closing phases of the project.
+        Format the response in mermaid gantt chart syntax and include a brief explanation of the chart.
+        The chart should be realistic for the given timeline of ${getTimelineText(project.timeline)}.
+      `;
+  
+      // Call the AI API
+      const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { 
+              role: 'user',
+              content: prompt
+            }
+          ],
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to generate Gantt chart');
+      }
+  
+      // Process the response
+      const contentType = response.headers.get('content-type');
+      let ganttChartContent = '';
+  
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          ganttChartContent = data.messages[data.messages.length - 1].content;
+        } else if (data.choices && data.choices.length > 0) {
+          ganttChartContent = data.choices[0].message.content;
+        } else {
+          ganttChartContent = JSON.stringify(data);
+        }
+      } else {
+        ganttChartContent = await response.text();
+      }
+      
+      setGanttChartContent(ganttChartContent);
+      setGanttChartPopupOpen(true);
+    } catch (error) {
+      console.error('Error generating Gantt chart:', error);
+      toast({
+        title: "Error",
+        description: "There was an error generating the Gantt chart.",
+        variant: "destructive"
+      });
+    } finally {
+      setGenerateGanttChartLoading(false);
+    }
+  };
+
+  // Function to generate change management template
+  const handleGenerateChangeManagement = async () => {
+    setGenerateChangeManagementLoading(true);
+    try {
+      // Create a prompt based on project details
+      const prompt = `
+        Fill out a change management template for the following project:
+        
+        Project Name: ${project.name}
+        Description: ${project.description}
+        Objective: ${project.objective}
+        Scale: ${project.scale}
+        Timeline: ${getTimelineText(project.timeline)}
+        Stakeholders: ${getStakeholderNames().join(', ')}
+        Additional Info: ${project.additional_info || 'N/A'}
+        
+        Use this template structure:
+        
+        # CHANGE MANAGEMENT PLAN
+        
+        ## 1. Project Overview
+        Project Name: 
+        Purpose of Change: 
+        Expected Outcomes: 
+        
+        ## 2. Define Success
+        Success Criteria: 
+        Stakeholders Involved: 
+        
+        ## 3. Change Impact Assessment
+        Impacted Groups: 
+        Change Characteristics: 
+        
+        ## 4. Change Management Strategy
+        Key Messages: 
+        Engagement Tactics: 
+        
+        ## 5. Communications Plan
+        Communication Objectives: 
+        Target Audiences: 
+        Communication Channels: 
+        
+        ## 6. Resistance Management
+        Potential Resistance Points: 
+        Strategies to Prevent and Address Resistance: 
+        
+        ## 7. Implementation Timeline
+        Milestones: 
+        Responsibilities: 
+        
+        ## 8. Monitoring and Evaluation
+        Performance Metrics: 
+        Feedback Mechanisms: 
+        
+        ## 9. Sustain Outcomes
+        Sustainment Strategies: 
+        Ownership Transfer: 
+        
+        Fill each section with detailed and practical information specific to this project.
+      `;
+  
+      // Call the AI API
+      const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { 
+              role: 'user',
+              content: prompt
+            }
+          ],
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to generate change management template');
+      }
+  
+      // Process the response
+      const contentType = response.headers.get('content-type');
+      let templateContent = '';
+  
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          templateContent = data.messages[data.messages.length - 1].content;
+        } else if (data.choices && data.choices.length > 0) {
+          templateContent = data.choices[0].message.content;
+        } else {
+          templateContent = JSON.stringify(data);
+        }
+      } else {
+        templateContent = await response.text();
+      }
+      
+      setChangeManagementContent(templateContent);
+      setChangeManagementPopupOpen(true);
+    } catch (error) {
+      console.error('Error generating change management template:', error);
+      toast({
+        title: "Error",
+        description: "There was an error generating the change management template.",
+        variant: "destructive"
+      });
+    } finally {
+      setGenerateChangeManagementLoading(false);
+    }
+  };
+
+  // Function to handle content generation based on type
   const handleGenerateContent = (type: string) => {
     if (type === 'Todo List') {
       handleGenerateTodoList();
+    } else if (type === 'Gantt Chart') {
+      handleGenerateGanttChart();
+    } else if (type === 'Change Management Template') {
+      handleGenerateChangeManagement();
     } else {
       toast({
         title: `Generating ${type}`,
@@ -188,6 +390,32 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
       });
     }
   };
+
+  // Helper function to download content
+  // Add explicit type annotations to the parameters
+  const downloadAsPdf = (content: string, filename: string): void => {
+    // Create a temporary div to render the markdown content as HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = renderMarkdown(content).__html;
+    tempDiv.className = 'prose prose-invert max-w-none p-8 bg-white text-black';
+    document.body.appendChild(tempDiv);
+    
+    // Configure PDF options
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generate PDF
+    html2pdf().from(tempDiv).set(options).save().then(() => {
+      // Remove the temporary div
+      document.body.removeChild(tempDiv);
+    });
+  };
+    
 
   // Get stakeholders from project data
   const getStakeholderNames = () => {
@@ -205,6 +433,23 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
       'more-than-year': 'More than a year'
     };
     return timelineMap[timeline] || timeline;
+  };
+
+  // Function to render markdown content
+  const renderMarkdown = (content: string) => {
+    return {
+      __html: content.replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/# (.*?)(\n|$)/g, '<h1 class="text-2xl font-bold my-4">$1</h1>')
+        .replace(/## (.*?)(\n|$)/g, '<h2 class="text-xl font-bold my-3">$1</h2>')
+        .replace(/### (.*?)(\n|$)/g, '<h3 class="text-lg font-bold my-2">$1</h3>')
+        .replace(/- \[ \] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" class="mt-1 mr-2" /><div>$1</div></div>')
+        .replace(/- \[x\] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" checked class="mt-1 mr-2" /><div>$1</div></div>')
+        .replace(/- (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><span class="mr-2">•</span><div>$1</div></div>')
+        .replace(/```mermaid([\s\S]*?)```/g, '<pre class="bg-gray-900 p-4 my-4 rounded overflow-x-auto">$1</pre>')
+        .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-900 p-4 my-4 rounded overflow-x-auto">$1</pre>')
+    };
   };
 
   if (loading || isLoading) {
@@ -375,9 +620,19 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                   <Button 
                     className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Gantt Chart')}
+                    disabled={generateGanttChartLoading}
                   >
-                    <BarChart3 className="h-10 w-10 mb-2" />
-                    <span className="text-lg font-medium">Generate Gantt Chart</span>
+                    {generateGanttChartLoading ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+                        <span className="text-lg font-medium">Generating...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <BarChart3 className="h-10 w-10 mb-2" />
+                        <span className="text-lg font-medium">Generate Gantt Chart</span>
+                      </>
+                    )}
                   </Button>
                   <p className="text-sm text-gray-400 mt-2 text-center">
                     Create a timeline visualization for your project
@@ -389,9 +644,19 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                   <Button 
                     className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Change Management Template')}
+                    disabled={generateChangeManagementLoading}
                   >
-                    <FileText className="h-10 w-10 mb-2" />
-                    <span className="text-lg font-medium">Change Management Template</span>
+                    {generateChangeManagementLoading ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+                        <span className="text-lg font-medium">Generating...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <FileText className="h-10 w-10 mb-2" />
+                        <span className="text-lg font-medium">Change Management Template</span>
+                      </>
+                    )}
                   </Button>
                   <p className="text-sm text-gray-400 mt-2 text-center">
                     Create a template for managing project changes
@@ -468,17 +733,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
               {/* Todo content with Markdown rendering */}
               <div 
                 className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ 
-                  __html: todoContent.replace(/\n/g, '<br>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
-                    .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
-                    .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
-                    .replace(/- \[ \] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" class="mt-1 mr-2" /><div>$1</div></div>')
-                    .replace(/- \[x\] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" checked class="mt-1 mr-2" /><div>$1</div></div>')
-                    .replace(/- (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><span class="mr-2">•</span><div>$1</div></div>')
-                }}
+                dangerouslySetInnerHTML={renderMarkdown(todoContent)}
               />
             </div>
             
@@ -493,22 +748,110 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
               <Button 
                 className="bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
-                  // Create a blob with the todo content
-                  const blob = new Blob([todoContent], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  
-                  // Create a download link and click it
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `${project.name.replace(/\s+/g, '-').toLowerCase()}-todo-list.md`;
-                  document.body.appendChild(a);
-                  a.click();
-                  
-                  // Clean up
-                  setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  }, 0);
+                  downloadAsPdf(
+                    todoContent, 
+                    `${project.name.replace(/\s+/g, '-').toLowerCase()}-todo-list.pdf`
+                  );
+                }}
+              >
+                Download
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gantt Chart Popup */}
+      {ganttChartPopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Popup Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-700">
+              <h3 className="text-xl font-medium">Gantt Chart</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                onClick={() => setGanttChartPopupOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Popup Content */}
+            <div className="p-6 overflow-y-auto flex-grow">
+              {/* Gantt Chart content with Markdown rendering */}
+              <div 
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={renderMarkdown(ganttChartContent)}
+              />
+            </div>
+            
+            {/* Popup Footer */}
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setGanttChartPopupOpen(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  downloadAsPdf(
+                    ganttChartContent, 
+                    `${project.name.replace(/\s+/g, '-').toLowerCase()}-gantt-chart.pdf`
+                  );
+                }}
+              >
+                Download
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Management Template Popup */}
+      {changeManagementPopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Popup Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-700">
+              <h3 className="text-xl font-medium">Change Management Template</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                onClick={() => setChangeManagementPopupOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Popup Content */}
+            <div className="p-6 overflow-y-auto flex-grow">
+              {/* Change Management Template content with Markdown rendering */}
+              <div 
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={renderMarkdown(changeManagementContent)}
+              />
+            </div>
+            
+            {/* Popup Footer */}
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setChangeManagementPopupOpen(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  downloadAsPdf(
+                    changeManagementContent, 
+                    `${project.name.replace(/\s+/g, '-').toLowerCase()}-change-management-template.pdf`
+                  );
                 }}
               >
                 Download
