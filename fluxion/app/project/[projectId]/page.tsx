@@ -13,7 +13,8 @@ import {
   MessageSquare,
   BarChart3,
   ListTodo,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -28,6 +29,11 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // New states for todo popup
+  const [todoPopupOpen, setTodoPopupOpen] = useState(false);
+  const [todoContent, setTodoContent] = useState<string>('');
+  const [generateTodoLoading, setGenerateTodoLoading] = useState(false);
 
   // Fetch project when user is authenticated
   useEffect(() => {
@@ -93,12 +99,94 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
     }
   };
 
-  // Dummy function for the generation buttons
+  // Function to generate todo list using the API
+  const handleGenerateTodoList = async () => {
+    setGenerateTodoLoading(true);
+    try {
+      // Create a prompt based on project details
+      const prompt = `
+        Generate a comprehensive todo list for the following project:
+        
+        Project Name: ${project.name}
+        Description: ${project.description}
+        Objective: ${project.objective}
+        Scale: ${project.scale}
+        Timeline: ${getTimelineText(project.timeline)}
+        Stakeholders: ${getStakeholderNames().join(', ')}
+        Additional Info: ${project.additional_info || 'N/A'}
+        
+        Create a detailed, actionable todo list with categorized tasks that will help successfully complete this project. 
+        Include tasks for planning, execution, monitoring, and closing phases of the project.
+        Format the response in markdown with headers, bullet points, and checkboxes.
+      `;
+  
+      // Call the AI API
+      const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { 
+              role: 'user',
+              content: prompt
+            }
+          ],
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to generate todo list');
+      }
+  
+      // Check if the response is JSON or plain text
+      const contentType = response.headers.get('content-type');
+      let todoListContent = '';
+  
+      if (contentType?.includes('application/json')) {
+        // Handle JSON response
+        const data = await response.json();
+        
+        // Extract the content from the API response
+        // This assumes the response follows the OpenAI-like format
+        if (data.messages && data.messages.length > 0) {
+          todoListContent = data.messages[data.messages.length - 1].content;
+        } else if (data.choices && data.choices.length > 0) {
+          todoListContent = data.choices[0].message.content;
+        } else {
+          todoListContent = JSON.stringify(data);
+        }
+      } else {
+        // Handle plain text response
+        todoListContent = await response.text();
+      }
+      
+      // Set the todo content and open the popup
+      setTodoContent(todoListContent);
+      setTodoPopupOpen(true);
+    } catch (error) {
+      console.error('Error generating todo list:', error);
+      toast({
+        title: "Error",
+        description: "There was an error generating the todo list.",
+        variant: "destructive"
+      });
+    } finally {
+      setGenerateTodoLoading(false);
+    }
+  };
+
+  // Dummy function for the other generation buttons
   const handleGenerateContent = (type: string) => {
-    toast({
-      title: `Generating ${type}`,
-      description: "This feature is not yet implemented."
-    });
+    if (type === 'Todo List') {
+      handleGenerateTodoList();
+    } else {
+      toast({
+        title: `Generating ${type}`,
+        description: "This feature is not yet implemented."
+      });
+    }
   };
 
   // Get stakeholders from project data
@@ -315,9 +403,19 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                   <Button 
                     className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Todo List')}
+                    disabled={generateTodoLoading}
                   >
-                    <ListTodo className="h-10 w-10 mb-2" />
-                    <span className="text-lg font-medium">Generate Todo List</span>
+                    {generateTodoLoading ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+                        <span className="text-lg font-medium">Generating...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <ListTodo className="h-10 w-10 mb-2" />
+                        <span className="text-lg font-medium">Generate Todo List</span>
+                      </>
+                    )}
                   </Button>
                   <p className="text-sm text-gray-400 mt-2 text-center">
                     Create a todo list for the project manager
@@ -347,6 +445,78 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
           </div>
         </main>
       </div>
+
+      {/* Todo List Popup */}
+      {todoPopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Popup Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-700">
+              <h3 className="text-xl font-medium">Todo List</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                onClick={() => setTodoPopupOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Popup Content */}
+            <div className="p-6 overflow-y-auto flex-grow">
+              {/* Todo content with Markdown rendering */}
+              <div 
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ 
+                  __html: todoContent.replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
+                    .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
+                    .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
+                    .replace(/- \[ \] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" class="mt-1 mr-2" /><div>$1</div></div>')
+                    .replace(/- \[x\] (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><input type="checkbox" checked class="mt-1 mr-2" /><div>$1</div></div>')
+                    .replace(/- (.*?)(\n|$)/g, '<div class="flex items-start mb-2"><span class="mr-2">•</span><div>$1</div></div>')
+                }}
+              />
+            </div>
+            
+            {/* Popup Footer */}
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setTodoPopupOpen(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  // Create a blob with the todo content
+                  const blob = new Blob([todoContent], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  
+                  // Create a download link and click it
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${project.name.replace(/\s+/g, '-').toLowerCase()}-todo-list.md`;
+                  document.body.appendChild(a);
+                  a.click();
+                  
+                  // Clean up
+                  setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }, 0);
+                }}
+              >
+                Download
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
