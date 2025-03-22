@@ -41,9 +41,11 @@ export default function SignIn() {
         console.log("Sign in error:", result.error);
       } else if (result.success) {
         console.log("Sign in successful, redirecting...");
-        // Use direct window location change instead of Next.js router
-        window.location.href = '/dashboard';
-      } else {
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
+      }
+      else {
         console.log("No success or error returned");
       }
     } catch (err) {

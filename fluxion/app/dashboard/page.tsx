@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Sidebar from '@/components/Sidebar';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 // Sample project data - in a real app, this would come from a database
 const sampleProjects = [
@@ -34,13 +35,32 @@ const ProjectCard = ({ project }: { project: { id: number; title: string; thumbn
 );
 
 export default function Dashboard() {
-  const { data: session } = useSession();
+  const { user, session, isLoading } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const router = useRouter();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/signin');
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  // Don't render content until we confirm the user is authenticated
+  if (!user) {
+    return null;
+  }
 
   // Generate user initials for avatar fallback
   const getUserInitials = () => {
-    if (!session?.user?.name) return "U";
-    const nameParts = session.user.name.split(" ");
+    if (!user?.user_metadata?.name) return "U";
+    const name = user.user_metadata.name;
+    const nameParts = name.split(" ");
     if (nameParts.length >= 2) {
       return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
     }
@@ -57,9 +77,9 @@ export default function Dashboard() {
             className="user-menu-button rounded-full h-10 w-10 overflow-hidden bg-gray-200 flex items-center justify-center"
             onClick={() => setIsSidebarOpen(true)}
           >
-            {session?.user?.image ? (
+            {user?.user_metadata?.avatar_url ? (
               <img 
-                src={session.user.image} 
+                src={user.user_metadata.avatar_url} 
                 alt="Profile" 
                 className="h-10 w-10 object-cover"
               />

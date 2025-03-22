@@ -1,9 +1,9 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
 
 type NavItem = {
   label: string;
@@ -17,7 +17,7 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
-  const { data: session } = useSession();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
   
   // Close sidebar when clicking outside
@@ -82,12 +82,22 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   // Generate user initials for avatar fallback
   const getUserInitials = () => {
-    if (!session?.user?.name) return "U";
-    const nameParts = session.user.name.split(" ");
+    if (!user?.user_metadata?.name) return "U";
+    
+    const name = user.user_metadata.name;
+    const nameParts = name.split(" ");
+    
     if (nameParts.length >= 2) {
       return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
     }
+    
     return nameParts[0][0];
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    await signOut();
+    onClose();
   };
 
   return (
@@ -116,9 +126,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         {/* User profile section */}
         <div className="flex flex-col items-center p-6 border-b border-gray-700 mt-8">
           <div className="relative h-16 w-16 rounded-full bg-gray-600 flex items-center justify-center text-xl font-bold mb-3">
-            {session?.user?.image ? (
+            {user?.user_metadata?.avatar_url ? (
               <img 
-                src={session.user.image} 
+                src={user.user_metadata.avatar_url} 
                 alt="Profile" 
                 className="h-16 w-16 rounded-full object-cover"
               />
@@ -126,8 +136,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <span>{getUserInitials()}</span>
             )}
           </div>
-          <h3 className="text-lg font-medium">{session?.user?.name || "User"}</h3>
-          <p className="text-sm text-gray-400">{session?.user?.email || ""}</p>
+          <h3 className="text-lg font-medium">{user?.user_metadata?.name || user?.email || "User"}</h3>
+          <p className="text-sm text-gray-400">{user?.email || ""}</p>
         </div>
         
         {/* Navigation items */}
@@ -158,7 +168,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         {/* Logout button at bottom */}
         <div className="border-t border-gray-700 p-4">
           <button
-            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            onClick={handleSignOut}
             className="flex w-full items-center rounded-md px-3 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
