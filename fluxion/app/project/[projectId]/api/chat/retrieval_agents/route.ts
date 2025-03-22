@@ -295,10 +295,10 @@ class SupabaseMessageHistory extends BaseChatMessageHistory {
 // Endpoint to get chat history
 export async function GET(
   req: NextRequest,
-  context: { params: { projectId: string } }
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    // Fixed: Next.js 15 way to access params
+    // Properly unwrap the Promise to access params
     const params = await context.params;
     const projectId = params.projectId;
     
@@ -371,12 +371,12 @@ Remember previous conversations with the user and refer to them when appropriate
 
 export async function POST(
   req: NextRequest,
-  context: { params: { projectId: string } }
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
     console.log("Chat - Headers:", Object.fromEntries(req.headers.entries()));
     
-    // Fixed: Next.js 15 way to access params
+    // Properly unwrap the Promise to access params
     const params = await context.params;
     const projectId = params.projectId;
     

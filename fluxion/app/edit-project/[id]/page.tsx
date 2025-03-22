@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +11,16 @@ import { useAuth } from '@/lib/auth-context';
 import { ProjectService, ProjectFormData } from '@/lib/project-service';
 import { toast } from '@/components/ui/use-toast';
 
-export default function EditProjectPage({ params }: { params: { id: string } }) {
+// Define the type for stakeholder objects
+interface Stakeholder {
+  name: string;
+  [key: string]: any; // For any other properties
+}
+
+export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params using React.use()
+  const { id } = use(params);
+  
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,9 +46,9 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   // Fetch project data
   useEffect(() => {
     const fetchProject = async () => {
-      if (user && params.id) {
+      if (user && id) {
         setIsLoadingProject(true);
-        const { data, error } = await ProjectService.getProjectById(params.id, user.id);
+        const { data, error } = await ProjectService.getProjectById(id, user.id);
         
         if (data) {
           // Map project data to form structure
@@ -47,7 +57,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             projectDescription: data.description,
             scale: data.scale,
             objective: data.objective,
-            stakeholders: data.project_stakeholders?.map(ps => ps.stakeholders.name) || [],
+            stakeholders: data.project_stakeholders?.map((ps: { stakeholders: Stakeholder }) => ps.stakeholders.name) || [],
             timeline: data.timeline,
             additionalInfo: data.additional_info || ''
           });
@@ -68,7 +78,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     if (user) {
       fetchProject();
     }
-  }, [user, params.id, router]);
+  }, [user, id, router]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -87,6 +97,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const nextStep = () => setStep(prev => prev + 1);
   
   const prevStep = () => setStep(prev => prev - 1);
+
+  // Handle back button click
+  const handleBackClick = () => {
+    router.push(`/project/${id}/interface`);
+  };
 
   const validateCurrentStep = () => {
     if (step === 1) {
@@ -126,7 +141,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await ProjectService.updateProject(params.id, formData, user.id);
+      const { data, error } = await ProjectService.updateProject(id, formData, user.id);
       
       if (error) {
         throw error;
@@ -138,7 +153,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       });
       
       // Redirect to the project page
-      router.push(`/project/${params.id}/interface`);
+      router.push(`/project/${id}/interface`);
     } catch (error) {
       console.error('Error updating project:', error);
       toast({
@@ -170,7 +185,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         <Button 
           type="button" 
           variant="outline" 
-          onClick={() => router.push(`/project/${params.id}`)} 
+          onClick={handleBackClick}
           className="flex items-center space-x-1"
         >
           <span>←</span>

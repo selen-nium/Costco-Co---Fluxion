@@ -15,7 +15,6 @@ export default function ResetPassword() {
   const router = useRouter();
   
   // Check for access token in the URL hash
-  // In your ResetPassword component's useEffect
   useEffect(() => {
     const checkHash = async () => {
       // Only run in browser environment
@@ -81,11 +80,19 @@ export default function ResetPassword() {
     try {
       console.log("Updating password with token...");
       
-      // Update password using token directly
-      const { error } = await supabase.auth.updateUser(
-        { password },
-        { accessToken: resetToken }
-      );
+      // Set the session with the recovery token
+      const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+        access_token: resetToken,
+        refresh_token: '',
+      });
+      
+      if (sessionError) {
+        console.error("Error setting session:", sessionError);
+        throw sessionError;
+      }
+      
+      // Update the user's password
+      const { error } = await supabase.auth.updateUser({ password });
       
       if (error) {
         console.error("Error updating password:", error);
