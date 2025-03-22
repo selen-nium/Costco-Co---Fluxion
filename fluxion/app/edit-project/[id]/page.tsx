@@ -98,6 +98,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   
   const prevStep = () => setStep(prev => prev - 1);
 
+  // Handle back button click
+  const handleBackClick = () => {
+    router.push(`/project/${id}/interface`);
+  };
+
   const validateCurrentStep = () => {
     if (step === 1) {
       return formData.projectName && formData.projectDescription && formData.scale;
@@ -180,7 +185,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         <Button 
           type="button" 
           variant="outline" 
-          onClick={() => router.push(`/project/${id}`)} 
+          onClick={handleBackClick}
           className="flex items-center space-x-1"
         >
           <span>←</span>
