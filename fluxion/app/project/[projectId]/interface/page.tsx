@@ -22,9 +22,9 @@ import { ProjectService } from '@/lib/project-service';
 import { toast } from '@/components/ui/use-toast';
 import html2pdf from 'html2pdf.js';
 
-export default function ProjectPage({ params }: { params: { projectId: string } }) {
+export default function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   // Unwrap the params using React.use()
-  const projectId = params.projectId;
+  const { projectId } = use(params);
   
   const router = useRouter();
   const { user, isLoading } = useAuth();
