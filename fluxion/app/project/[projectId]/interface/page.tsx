@@ -206,7 +206,8 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
         
         Create a detailed Gantt chart that includes key milestones, tasks, and dependencies that will help successfully complete this project.
         Include planning, execution, monitoring, and closing phases of the project.
-        Format the response in mermaid gantt chart syntax and include a brief explanation of the chart.
+        Format the response in text form.
+        Current date is 23/3/2025.
         The chart should be realistic for the given timeline of ${getTimelineText(project.timeline)}.
       `;
   
