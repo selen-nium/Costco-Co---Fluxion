@@ -928,17 +928,6 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
               >
                 Close
               </Button>
-              <Button 
-                className="bg-black hover:bg-gray-800 text-white"
-                onClick={() => {
-                  downloadAsPdf(
-                    ganttChartContent, 
-                    `${project.name.replace(/\s+/g, '-').toLowerCase()}-gantt-chart.pdf`
-                  );
-                }}
-              >
-                Download
-              </Button>
             </div>
           </div>
         </div>
