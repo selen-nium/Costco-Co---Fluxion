@@ -119,9 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-
+  
       if (error) throw error;
-
       return { error: null, success: true };
     } catch (error) {
       console.error("Error resetting password:", error);
