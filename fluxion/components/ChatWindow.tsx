@@ -210,6 +210,11 @@ export function ChatWindow(props: {
     e.preventDefault();
     if (chat.isLoading || intermediateStepsLoading) return;
 
+    if (!chat.input.trim()) {
+      // toast.error("Please enter a message before sending.");
+      return;
+    }
+    
     if (!showIntermediateSteps) {
       chat.handleSubmit(e);
       return;
@@ -221,9 +226,10 @@ export function ChatWindow(props: {
     chat.setInput("");
     const messagesWithUserReply = chat.messages.concat({
       id: chat.messages.length.toString(),
-      content: chat.input,
+      content: chat.input.trim(),
       role: "user",
-    });
+    }).filter((msg) => msg.content.trim() !== "");
+    
     chat.setMessages(messagesWithUserReply);
 
     const response = await fetch(props.endpoint, {
@@ -317,7 +323,7 @@ export function ChatWindow(props: {
                 <Button
                   variant="ghost"
                   className="pl-2 pr-3 -ml-2"
-                  disabled={chat.messages.length !== 0}
+                  disabled={chat.isLoading}
                 >
                   <Paperclip className="size-4" />
                   <span>Upload document</span>
