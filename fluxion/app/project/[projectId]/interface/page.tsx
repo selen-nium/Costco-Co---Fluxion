@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowLeft, 
@@ -21,6 +22,7 @@ import { useAuth } from '@/lib/auth-context';
 import { ProjectService } from '@/lib/project-service';
 import { toast } from '@/components/ui/use-toast';
 import html2pdf from 'html2pdf.js';
+import GanttChartViewer from '@/components/GanttChartViewer';
 
 export default function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   // Unwrap the params using React.use()
@@ -42,6 +44,10 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
   const [todoContent, setTodoContent] = useState<string>('');
   const [ganttChartContent, setGanttChartContent] = useState<string>('');
   const [changeManagementContent, setChangeManagementContent] = useState<string>('');
+  
+  // New states for stakeholder guides
+  const [stakeholderGuides, setStakeholderGuides] = useState<{[key: string]: string}>({});
+  const [selectedStakeholder, setSelectedStakeholder] = useState<string>('');
   
   // Loading states
   const [generateTodoLoading, setGenerateTodoLoading] = useState(false);
@@ -112,27 +118,70 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     }
   };
 
-  // Function to generate todo list using the API
-  const handleGenerateTodoList = async () => {
+  // Updated function to generate stakeholder guides
+  const handleGenerateStakeholderGuides = async () => {
     setGenerateTodoLoading(true);
     try {
-      // Create a prompt based on project details
+      // Create a clearer, more focused prompt
       const prompt = `
-        Generate a comprehensive todo list for the following project:
-        
+        # Change Management Stakeholder Guide Generator
+
+        ## Project Context
         Project Name: ${project.name}
         Description: ${project.description}
         Objective: ${project.objective}
         Scale: ${project.scale}
         Timeline: ${getTimelineText(project.timeline)}
-        Stakeholders: ${getStakeholderNames().join(', ')}
         Additional Info: ${project.additional_info || 'N/A'}
-        
-        Create a detailed, actionable todo list with categorized tasks that will help successfully complete this project. 
-        Include tasks for planning, execution, monitoring, and closing phases of the project.
-        Format the response in markdown with headers, bullet points, and checkboxes.
+
+        ## Stakeholders Involved
+        ${getStakeholderNames().map(name => `- ${name}`).join('\n')}
+
+        ## Task Description
+        For EACH of the stakeholders listed above(apart from 'Stakeholder'), create a separate guide document. Each guide should be clearly separated with a marker like "=== STAKEHOLDER GUIDE: [Stakeholder Name] ===" at the beginning and "=== END OF GUIDE ===" at the end of each guide.
+
+        ## For each stakeholder guide, please include:
+
+        1. **Role and Responsibilities**
+          - Clear definition of the stakeholder's role in the change process
+          - Specific responsibilities and action items
+          - Key decision points they're involved in
+
+        2. **Detailed Implementation Checklist**
+          - Pre-implementation preparation tasks
+          - Implementation phase action items
+          - Post-implementation follow-up responsibilities
+          - Each item should include an estimated time commitment
+
+        3. **Timeline and Key Milestones**
+          - Visual description of when their involvement is needed
+          - Critical dates and deadlines specific to their role
+          - Dependencies with other stakeholders' activities
+          - Regular check-in points and progress reviews
+
+        4. **Potential Risks and Resistance Factors**
+          - Identification of likely challenges specific to this stakeholder
+          - Common resistance patterns they might encounter (or exhibit)
+          - Early warning signs to monitor
+
+        5. **Mitigation Strategies**
+          - Practical approaches to address identified risks
+          - Communication templates and talking points
+          - Escalation procedures when issues arise
+          - Resources available for additional support
+
+        6. **Success Metrics**
+          - How this stakeholder's contribution to the change will be measured
+          - KPIs relevant to their role
+          - Feedback mechanisms they should implement
+
+        7. **Communication Plan**
+          - Who they need to communicate with
+
+        Format each guide professionally with clear sections and subsections, using markdown formatting.
+        Ensure each guide is tailored to the specific perspective and responsibilities of that stakeholder.
       `;
-  
+
       // Call the AI API
       const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {
         method: 'POST',
@@ -148,41 +197,84 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
           ],
         }),
       });
-  
+
       if (!response.ok) {
-        throw new Error('Failed to generate todo list');
+        throw new Error('Failed to generate stakeholder guides');
       }
-  
-      // Check if the response is JSON or plain text
+
+      // Process the response
       const contentType = response.headers.get('content-type');
-      let todoListContent = '';
-  
+      let fullContent = '';
+
       if (contentType?.includes('application/json')) {
-        // Handle JSON response
         const data = await response.json();
         
-        // Extract the content from the API response
-        // This assumes the response follows the OpenAI-like format
         if (data.messages && data.messages.length > 0) {
-          todoListContent = data.messages[data.messages.length - 1].content;
+          fullContent = data.messages[data.messages.length - 1].content;
         } else if (data.choices && data.choices.length > 0) {
-          todoListContent = data.choices[0].message.content;
+          fullContent = data.choices[0].message.content;
         } else {
-          todoListContent = JSON.stringify(data);
+          fullContent = JSON.stringify(data);
         }
       } else {
-        // Handle plain text response
-        todoListContent = await response.text();
+        fullContent = await response.text();
       }
       
-      // Set the todo content and open the popup
-      setTodoContent(todoListContent);
-      setTodoPopupOpen(true);
+      // Parse the content to separate stakeholder guides
+      const guides: {[key: string]: string} = {};
+      
+      // Split the content by the stakeholder guide markers
+      const guideMatches = fullContent.split(/===\s*STAKEHOLDER GUIDE:\s*(.*?)\s*===/);
+      
+      // Starting from index 1, process each guide (the array will have format [preamble, name1, content1, name2, content2, ...])
+      for (let i = 1; i < guideMatches.length; i += 2) {
+        if (i + 1 < guideMatches.length) {
+          const stakeholderName = guideMatches[i].trim();
+          let guideContent = guideMatches[i + 1];
+          
+          // Remove the end marker if it exists
+          guideContent = guideContent.replace(/===\s*END OF GUIDE\s*===/g, '').trim();
+          
+          guides[stakeholderName] = guideContent;
+        }
+      }
+      
+      // If no guides were properly separated, try an alternative parsing approach
+      if (Object.keys(guides).length === 0) {
+        const stakeholderNames = getStakeholderNames();
+        for (const name of stakeholderNames) {
+          // Try to find sections that might correspond to each stakeholder
+          const regex = new RegExp(`(?:#+\\s*${name}|${name}[\\s\\S]*?(?=(?:#+\\s*(?:${stakeholderNames.join('|')})|$))`, 'i');
+          const match = fullContent.match(regex);
+          if (match && match[0]) {
+            guides[name] = match[0].trim();
+          }
+        }
+        
+        // If still no guides, just use the full content for the first stakeholder
+        if (Object.keys(guides).length === 0 && stakeholderNames.length > 0) {
+          guides[stakeholderNames[0]] = fullContent;
+        }
+      }
+      
+      setStakeholderGuides(guides);
+      
+      // If guides were created, select the first one and open the popup
+      const stakeholderList = Object.keys(guides);
+      if (stakeholderList.length > 0) {
+        setSelectedStakeholder(stakeholderList[0]);
+        setTodoContent(guides[stakeholderList[0]]);
+        setTodoPopupOpen(true);
+      } else {
+        // If parsing failed, just show the full content
+        setTodoContent(fullContent);
+        setTodoPopupOpen(true);
+      }
     } catch (error) {
-      console.error('Error generating todo list:', error);
+      console.error('Error generating stakeholder guides:', error);
       toast({
         title: "Error",
-        description: "There was an error generating the todo list.",
+        description: "There was an error generating the stakeholder guides.",
         variant: "destructive"
       });
     } finally {
@@ -196,21 +288,30 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     try {
       // Create a prompt based on project details
       const prompt = `
-        Generate a Gantt chart (in mermaid syntax) for the following project:
-        
-        Project Name: ${project.name}
-        Description: ${project.description}
-        Objective: ${project.objective}
-        Scale: ${project.scale}
-        Timeline: ${getTimelineText(project.timeline)}
-        Stakeholders: ${getStakeholderNames().join(', ')}
-        Additional Info: ${project.additional_info || 'N/A'}
-        
-        Create a detailed Gantt chart that includes key milestones, tasks, and dependencies that will help successfully complete this project.
-        Include planning, execution, monitoring, and closing phases of the project.
-        Format the response in text form.
-        Current date is 23/3/2025.
-        The chart should be realistic for the given timeline of ${getTimelineText(project.timeline)}.
+      Generate a Gantt chart using Mermaid syntax for the following project.
+      
+      Project Name: ${project.name}
+      Description: ${project.description}
+      Objective: ${project.objective}
+      Scale: ${project.scale}
+      Timeline: ${getTimelineText(project.timeline)}
+      Stakeholders: ${getStakeholderNames().join(', ')}
+      Additional Info: ${project.additional_info || 'N/A'}
+    
+      Requirements:
+      - The chart should include the following phases: Planning, Execution, Monitoring, and Closing.
+      - Use realistic task durations and dependencies based on the timeline provided.
+      - Mermaid version is 8.14.0. Ensure strict compatibility.
+      - The date starts with 2025-03-23
+      - **DO NOT use spaces in task names**. Replace them with underscores or use quoted labels.
+      - Use this format for each task: Label :id, start_date or dependency, duration
+      - Example:
+        section Planning
+        "Project_Setup" :a1, 2025-03-23, 3d
+        "Team_Alignment" :a2, after a1, 2d
+    
+      Output ONLY the raw Mermaid chart with no explanation or code block formatting.
+      Begin with \`gantt\`, then define \`dateFormat\`, \`title\`, and the chart body.
       `;
   
       // Call the AI API
@@ -380,8 +481,8 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
 
   // Function to handle content generation based on type
   const handleGenerateContent = (type: string) => {
-    if (type === 'Todo List') {
-      handleGenerateTodoList();
+    if (type === 'Stakeholder Guides') {
+      handleGenerateStakeholderGuides();
     } else if (type === 'Gantt Chart') {
       handleGenerateGanttChart();
     } else if (type === 'Change Management Template') {
@@ -395,7 +496,6 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
   };
 
   // Helper function to download content
-  // Add explicit type annotations to the parameters
   const downloadAsPdf = (content: string, filename: string): void => {
     // Create a temporary div to render the markdown content as HTML
     const tempDiv = document.createElement('div');
@@ -453,6 +553,90 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         .replace(/```mermaid([\s\S]*?)```/g, '<pre class="bg-gray-900 p-4 my-4 rounded overflow-x-auto">$1</pre>')
         .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-900 p-4 my-4 rounded overflow-x-auto">$1</pre>')
     };
+  };
+
+  // Stakeholder Guide Popup Component
+  const StakeholderGuidePopup = () => {
+    if (!todoPopupOpen) return null;
+    
+    const stakeholderList = Object.keys(stakeholderGuides);
+    const hasMultipleGuides = stakeholderList.length > 1;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+          {/* Popup Header */}
+          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-700">
+            <h3 className="text-xl font-medium">
+              {hasMultipleGuides ? 'Stakeholder Guides' : 'Stakeholder Guide'}
+            </h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-black hover:bg-gray-700 hover:text-gray-200"
+              onClick={() => setTodoPopupOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          {/* Stakeholder Selector (only if multiple guides) */}
+          {hasMultipleGuides && (
+            <div className="px-6 py-3 border-b border-gray-700">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-sm text-gray-400">Select Stakeholder:</label>
+                <div className="flex flex-wrap gap-2 text-black">
+                  {stakeholderList.map((name) => (
+                    <Button
+                      key={name}
+                      variant={selectedStakeholder === name ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setSelectedStakeholder(name);
+                        setTodoContent(stakeholderGuides[name]);
+                      }}
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Popup Content */}
+          <div className="p-6 overflow-y-auto flex-grow">
+            {/* Guide content with Markdown rendering */}
+            <div 
+              className="prose prose-invert max-w-none"
+              dangerouslySetInnerHTML={renderMarkdown(todoContent)}
+            />
+          </div>
+          
+          {/* Popup Footer */}
+          <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2 bg-black text-black">
+            <Button 
+              variant="outline" 
+              onClick={() => setTodoPopupOpen(false)}
+            >
+              Close
+            </Button>
+            <Button 
+              className="bg-black hover:bg-gray-800 text-white"
+              onClick={() => {
+                const filename = selectedStakeholder 
+                  ? `${project.name.replace(/\s+/g, '-').toLowerCase()}-${selectedStakeholder.replace(/\s+/g, '-').toLowerCase()}-guide.pdf`
+                  : `${project.name.replace(/\s+/g, '-').toLowerCase()}-stakeholder-guide.pdf`;
+                
+                downloadAsPdf(todoContent, filename);
+              }}
+            >
+              Download
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading || isLoading) {
@@ -552,7 +736,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
           
           {/* Centered title */}
           <h1 className="text-xl font-bold text-center text-white absolute left-1/2 transform -translate-x-1/2">
-            {project.name}
+            Fluxion
           </h1>
           
           {/* Action buttons */}
@@ -560,7 +744,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-white hover:bg-gray-800"
+              className="text-black hover:bg-gray-800"
               onClick={() => router.push(`/edit-project/${projectId}`)}
             >
               <Edit className="h-4 w-4" />
@@ -595,7 +779,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                   >
                     <MessageSquare className="h-10 w-10 mb-2" />
                     <span className="text-lg font-medium">Start Chat</span>
-                  </Button>
+                    </Button>
                   <p className="text-sm text-gray-400 mt-2 text-center">
                     Chat with your AI assistant about this project
                   </p>
@@ -649,11 +833,11 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                   </p>
                 </div>
                 
-                {/* Todo List Button */}
+                {/* Stakeholder Guides Button - Updated from Todo List */}
                 <div className="flex flex-col items-center">
                   <Button 
                     className="w-full h-32 flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
-                    onClick={() => handleGenerateContent('Todo List')}
+                    onClick={() => handleGenerateStakeholderGuides()}
                     disabled={generateTodoLoading}
                   >
                     {generateTodoLoading ? (
@@ -664,12 +848,12 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                     ) : (
                       <>
                         <ListTodo className="h-10 w-10 mb-2" />
-                        <span className="text-lg font-medium">Generate Todo List</span>
+                        <span className="text-lg font-medium">Generate Stakeholder Guides</span>
                       </>
                     )}
                   </Button>
                   <p className="text-sm text-gray-400 mt-2 text-center">
-                    Create a todo list for the project manager
+                    Create tailored guides for each stakeholder to adapt to change
                   </p>
                 </div>
               </div>
@@ -697,55 +881,8 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         </main>
       </div>
 
-      {/* Todo List Popup */}
-      {todoPopupOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-            {/* Popup Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-700">
-              <h3 className="text-xl font-medium">Todo List</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-400 hover:bg-gray-700 hover:text-gray-200"
-                onClick={() => setTodoPopupOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            {/* Popup Content */}
-            <div className="p-6 overflow-y-auto flex-grow">
-              {/* Todo content with Markdown rendering */}
-              <div 
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={renderMarkdown(todoContent)}
-              />
-            </div>
-            
-            {/* Popup Footer */}
-            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setTodoPopupOpen(false)}
-              >
-                Close
-              </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  downloadAsPdf(
-                    todoContent, 
-                    `${project.name.replace(/\s+/g, '-').toLowerCase()}-todo-list.pdf`
-                  );
-                }}
-              >
-                Download
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Stakeholder Guide Popup */}
+      <StakeholderGuidePopup />
 
       {/* Gantt Chart Popup */}
       {ganttChartPopupOpen && (
@@ -766,15 +903,25 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             
             {/* Popup Content */}
             <div className="p-6 overflow-y-auto flex-grow">
-              {/* Gantt Chart content with Markdown rendering */}
-              <div 
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={renderMarkdown(ganttChartContent)}
-              />
+              {
+                ganttChartContent.includes('gantt') ? (
+                  <GanttChartViewer
+                    chart={ganttChartContent
+                      .replace(/```mermaid/g, '')
+                      .replace(/```/g, '')
+                      .trim()}
+                  />
+                ) : (
+                  <div
+                    className="prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={renderMarkdown(ganttChartContent)}
+                  />
+                )
+              }
             </div>
             
             {/* Popup Footer */}
-            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2 text-black">
               <Button 
                 variant="outline" 
                 onClick={() => setGanttChartPopupOpen(false)}
@@ -782,7 +929,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                 Close
               </Button>
               <Button 
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-black hover:bg-gray-800 text-white"
                 onClick={() => {
                   downloadAsPdf(
                     ganttChartContent, 
@@ -824,7 +971,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             </div>
             
             {/* Popup Footer */}
-            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2">
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end space-x-2 text-black">
               <Button 
                 variant="outline" 
                 onClick={() => setChangeManagementPopupOpen(false)}
@@ -832,7 +979,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                 Close
               </Button>
               <Button 
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-black hover:bg-gray-800 text-white"
                 onClick={() => {
                   downloadAsPdf(
                     changeManagementContent, 
