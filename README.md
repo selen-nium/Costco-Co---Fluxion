@@ -1,4 +1,4 @@
-# ![Fluxion Logo](/fluxion/public/logo.png) Fluxion | AI-Powered Change Management Assistant
+# <img src="/fluxion/public/logo.png" width="80" alt="Fluxion Logo"> Fluxion | AI-Powered Change Management Assistant
 
 Fluxion is an AI assistant designed specifically for change managers to efficiently plan and implement change initiatives across teams, departments, or entire organisations.
 
