@@ -482,14 +482,6 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
       >
         <div className="sticky top-0 bg-gray-800 z-10 py-3 px-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-lg font-medium text-gray-200">Project Summary</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden text-gray-400 hover:bg-gray-700"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
         </div>
         
         <div className="p-4">
@@ -552,15 +544,6 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
             </Button>
           </Link>
 
-          {/* Toggle sidebar button (desktop) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mr-2 text-white hover:bg-gray-800 hidden lg:flex"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
           
           {/* Empty div to push title to center */}
           <div className="flex-1"></div>
