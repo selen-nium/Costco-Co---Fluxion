@@ -1,3 +1,4 @@
+'use client';
 import { ChatWindow } from "@/components/ChatWindow";
 import { GuideInfoBox } from "@/components/guide/GuideInfoBox";
 
@@ -60,7 +61,6 @@ export default function AgentsPage() {
           </span>
         </li>
         <li className="text-l">
-          👇
           <span className="ml-2">
             Upload some text, then try asking e.g.{" "}
             <code>What are some ways of doing retrieval in LangChain?</code>{" "}
@@ -78,7 +78,7 @@ export default function AgentsPage() {
       showIngestForm={true}
       showIntermediateStepsToggle={true}
       placeholder={
-        'Beep boop! I\'m a robot retrieval-focused agent! Ask, "What are some ways of doing retrieval in LangChain.js?"'
+        'How can we change today for a better tomorrow?'
       }
       emoji="🤖"
     />
