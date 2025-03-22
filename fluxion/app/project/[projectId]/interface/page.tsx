@@ -24,8 +24,7 @@ import html2pdf from 'html2pdf.js';
 
 export default function ProjectPage({ params }: { params: { projectId: string } }) {
   // Unwrap the params using React.use()
-  const resolvedParams = use(params);
-  const projectId = resolvedParams.projectId;
+  const projectId = params.projectId;
   
   const router = useRouter();
   const { user, isLoading } = useAuth();
