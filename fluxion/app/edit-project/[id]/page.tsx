@@ -138,7 +138,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       });
       
       // Redirect to the project page
-      router.push(`/project/${params.id}`);
+      router.push(`/project/${params.id}/interface`);
     } catch (error) {
       console.error('Error updating project:', error);
       toast({
