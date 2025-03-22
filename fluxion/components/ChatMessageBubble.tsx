@@ -1,5 +1,6 @@
 import { cn } from "@/utils/cn";
 import type { Message } from "ai/react";
+import ReactMarkdown from "react-markdown";
 
 export function ChatMessageBubble(props: {
   message: Message;
@@ -40,8 +41,30 @@ export function ChatMessageBubble(props: {
         </div>
       )}
 
-      <div className="whitespace-pre-wrap flex flex-col">
-        <span>{messageContent}</span>
+      <div className="flex flex-col leading-tight">
+        <ReactMarkdown 
+          components={{
+            h1: ({children, ...props}) => <h1 className="text-2xl font-bold mt-3 mb-2" {...props}>{children}</h1>,
+            h2: ({children, ...props}) => <h2 className="text-xl font-bold mt-2 mb-1" {...props}>{children}</h2>,
+            h3: ({children, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1" {...props}>{children}</h3>,
+            p: ({children, ...props}) => <p className="mb-1" {...props}>{children}</p>,
+            strong: ({children, ...props}) => <strong className="font-bold" {...props}>{children}</strong>,
+            em: ({children, ...props}) => <em className="italic" {...props}>{children}</em>,
+            ul: ({children, ...props}) => <ul className="list-disc ml-6 my-1" {...props}>{children}</ul>,
+            ol: ({children, ...props}) => <ol className="list-decimal ml-6 my-1" {...props}>{children}</ol>,
+            li: ({children, ...props}) => <li className="mb-0.5" {...props}>{children}</li>,
+            code: ({children, className, ...props}) => {
+              const isInline = !className || !className.includes('language-');
+              return isInline ? 
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded font-mono text-sm" {...props}>{children}</code> :
+                <code className="block bg-gray-100 dark:bg-gray-800 p-2 my-1 rounded font-mono text-sm overflow-x-auto" {...props}>{children}</code>;
+            },
+            blockquote: ({children, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-1 italic" {...props}>{children}</blockquote>,
+            a: ({children, ...props}) => <a className="text-blue-600 dark:text-blue-400 hover:underline" {...props}>{children}</a>
+          }}
+        >
+          {messageContent}
+        </ReactMarkdown>
 
         {props.sources && props.sources.length ? (
           <>
