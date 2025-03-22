@@ -96,21 +96,21 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-      {/* Left side - Logo */}
-      <div className="w-5/12 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center gap-5">
-          <img src="/logo.png" alt="Fluxion" className="h-32 w-auto"></img>
-          <h1 className="text-7xl font-bold tracking-wider text-black font-mono">Fluxion</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row items-center justify-center p-4 md:p-6">
+      {/* Logo section - stacks on top for mobile, left side for larger screens */}
+      <div className="w-full md:w-5/12 flex flex-col items-center justify-center mb-8 md:mb-0">
+        <div className="flex flex-col items-center gap-3 md:gap-5">
+          <img src="/logo.png" alt="Fluxion" className="h-20 sm:h-24 md:h-32 w-auto"></img>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-wider text-black font-mono">Fluxion</h1>
         </div>
       </div>
 
-      {/* Right side - Sign in form */}
-      <div className="w-5/12 flex flex-col justify-center">
-        <div className="max-w-md w-full">
+      {/* Sign in form - full width for mobile, right side for larger screens */}
+      <div className="w-full md:w-5/12 flex flex-col justify-center">
+        <div className="w-full max-w-md mx-auto">
           {/* Centered text above the form */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
               Sign in to your account
             </h2>
             <p className="text-sm text-gray-600">
@@ -121,10 +121,10 @@ export default function SignIn() {
             </p>
           </div>
         
-          <div className="bg-white py-8 px-6 shadow-sm border border-gray-100 rounded-lg">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="bg-white py-6 sm:py-8 px-4 sm:px-6 shadow-sm border border-gray-100 rounded-lg">
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {error && (
-                <div className="rounded-md bg-red-50 p-4">
+                <div className="rounded-md bg-red-50 p-3 sm:p-4">
                   <div className="flex">
                     <div className="flex-shrink-0">
                       <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -141,7 +141,7 @@ export default function SignIn() {
               )}
               
               {verificationMessage && (
-                <div className="rounded-md bg-yellow-50 p-4">
+                <div className="rounded-md bg-yellow-50 p-3 sm:p-4">
                   <div className="flex">
                     <div className="flex-shrink-0">
                       <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -217,7 +217,7 @@ export default function SignIn() {
 
                 <div className="text-sm">
                   <Link href="/auth/forgetpassword" className="font-medium text-black hover:text-gray-700 transition-colors duration-300">
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>
