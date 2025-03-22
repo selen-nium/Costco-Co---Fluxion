@@ -62,7 +62,8 @@ export default function ForgotPassword() {
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-green-800">Success!</h3>
                 <div className="mt-2 text-sm text-green-700">
-                  <p>We've sent a password reset link to your email address. Please check your inbox.</p>
+                  <p>We've sent a password reset link to your email address. Please check your inbox. </p>
+                  <p>The email may take around 3 minutes to send.</p>
                 </div>
                 <div className="mt-4">
                   <Link href="/auth/signin" className="text-sm font-medium text-green-800 hover:text-green-700">

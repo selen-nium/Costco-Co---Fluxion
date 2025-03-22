@@ -15,33 +15,46 @@ export default function ResetPassword() {
   const router = useRouter();
   
   // Check for access token in the URL hash
+  // In your ResetPassword component's useEffect
   useEffect(() => {
     const checkHash = async () => {
-      // Check for hash parameters
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
+      // Only run in browser environment
+      if (typeof window === 'undefined') return;
       
-      if (accessToken && type === 'recovery') {
-        // Set session with the access token
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: '',
-        });
-        
-        if (error) {
-          console.error('Error setting session:', error);
-          setError('Invalid or expired reset link. Please request a new one.');
-        } else {
-          setValidHash(true);
-        }
-      } else if (!accessToken) {
+      // Check for hash parameters
+      const hash = window.location.hash;
+      if (!hash) {
         setError('No reset token found. Please request a new password reset link.');
+        return;
+      }
+      
+      try {
+        // Parse the hash parameters
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+        
+        if (accessToken && type === 'recovery') {
+          console.log("Found recovery token");
+          // Don't try to set session yet, just mark the hash as valid
+          setValidHash(true);
+          // Store the token for later use
+          setResetToken(accessToken);
+        } else {
+          console.log("Missing or invalid token parameters:", { accessToken, type });
+          setError('Invalid reset link. Please request a new password reset link.');
+        }
+      } catch (err) {
+        console.error("Error processing reset link:", err);
+        setError('Error processing reset link. Please request a new one.');
       }
     };
     
     checkHash();
   }, []);
+
+  // Add a state to store the token
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,32 +70,43 @@ export default function ResetPassword() {
       return;
     }
     
+    if (!resetToken) {
+      setError("Reset token is missing. Please try again with a new reset link.");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     
     try {
-      // Update password using Supabase Auth
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
+      console.log("Updating password with token...");
+      
+      // Update password using token directly
+      const { error } = await supabase.auth.updateUser(
+        { password },
+        { accessToken: resetToken }
+      );
       
       if (error) {
+        console.error("Error updating password:", error);
         throw error;
       }
       
+      console.log("Password updated successfully");
       setSuccess(true);
       
       // Redirect to sign-in page after a delay
       setTimeout(() => {
-        router.push('/auth/signin?reset=true');
+        window.location.href = '/auth/signin?reset=true';
       }, 3000);
     } catch (err: any) {
+      console.error("Password reset failed:", err);
       setError(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
