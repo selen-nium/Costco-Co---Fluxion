@@ -137,15 +137,17 @@ export default function Dashboard() {
             className="user-menu-button rounded-full h-10 w-10 overflow-hidden bg-gray-700 flex items-center justify-center"
             onClick={() => setIsSidebarOpen(true)}
           >
-            {user?.user_metadata?.avatar_url ? (
+          <div className="flex flex-col items-center p-6 border-b border-gray-700 mt-3">
+            <div className="relative h-10 w-10 rounded-full overflow-hidden mb-3">
               <img 
-                src={user.user_metadata.avatar_url} 
+                src="/images/pfp.png" 
                 alt="Profile" 
-                className="h-10 w-10 object-cover"
+                className="h-full w-full object-cover"
               />
-            ) : (
-              <span className="font-medium text-gray-200">{getUserInitials()}</span>
-            )}
+            </div>
+
+          </div>
+            
           </button>
         </div>
       </header>

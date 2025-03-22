@@ -1,5 +1,5 @@
 'use client';
-
+import GanttChartViewer from '@/components/GanttChartViewer';
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -312,7 +312,12 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     
       Output ONLY the raw Mermaid chart with no explanation or code block formatting.
       Begin with \`gantt\`, then define \`dateFormat\`, \`title\`, and the chart body.
+<<<<<<< HEAD
       `;
+=======
+    `;
+    
+>>>>>>> 53b34be31ed75ca67148596f14fb9159a235d186
   
       // Call the AI API
       const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {

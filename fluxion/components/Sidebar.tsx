@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 type NavItem = {
+  disabled: any;
   label: string;
   href: string;
   icon: React.ReactNode;
@@ -59,6 +60,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
         </svg>
       ),
+      disabled: false
     },
     {
       label: "Profile",
@@ -68,6 +70,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
         </svg>
       ),
+      disabled: true
     },
     {
       label: "Settings",
@@ -77,6 +80,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
         </svg>
       ),
+      disabled: true
     },
   ];
 
@@ -125,16 +129,12 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         {/* User profile section */}
         <div className="flex flex-col items-center p-6 border-b border-gray-700 mt-8">
-          <div className="relative h-16 w-16 rounded-full bg-gray-600 flex items-center justify-center text-xl font-bold mb-3">
-            {user?.user_metadata?.avatar_url ? (
-              <img 
-                src={user.user_metadata.avatar_url} 
-                alt="Profile" 
-                className="h-16 w-16 rounded-full object-cover"
-              />
-            ) : (
-              <span>{getUserInitials()}</span>
-            )}
+          <div className="relative h-16 w-16 rounded-full overflow-hidden mb-3">
+            <img 
+              src="/images/pfp.png" 
+              alt="Profile" 
+              className="h-full w-full object-cover"
+            />
           </div>
           <h3 className="text-lg font-medium">{user?.user_metadata?.name || user?.email || "User"}</h3>
           <p className="text-sm text-gray-400">{user?.email || ""}</p>
@@ -145,6 +145,19 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              if (item.disabled) {
+                // Render a disabled button instead of a link
+                return (
+                  <li key={item.href}>
+                    <div 
+                      className="flex items-center rounded-md px-3 py-2 text-gray-500 cursor-not-allowed opacity-60"
+                    >
+                      <span className="mr-3">{item.icon}</span>
+                      {item.label}
+                    </div>
+                  </li>
+                );
+              }
               return (
                 <li key={item.href}>
                   <Link 

@@ -52,15 +52,9 @@ export default function CreateProjectPage() {
 
   const validateCurrentStep = () => {
     if (step === 1) {
-      return formData.projectName && formData.projectDescription && formData.scale;
+      return formData.projectName; // Only project name is required
     }
-    if (step === 2) {
-      return formData.objective && formData.stakeholders.length > 0;
-    }
-    if (step === 3) {
-      return formData.timeline;
-    }
-    return true;
+    return true; // All other steps are valid by default
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -75,11 +69,11 @@ export default function CreateProjectPage() {
       return;
     }
     
-    // Validate the final step
-    if (!validateCurrentStep()) {
+    // Validate only project name is required
+    if (!formData.projectName) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please provide a project name",
         variant: "destructive"
       });
       return;
@@ -114,11 +108,11 @@ export default function CreateProjectPage() {
   };
 
   // Common class for consistent styling across all selects
-  const selectClass = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900";
+  const selectClass = "w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-800 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   // Show loading state while checking authentication
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-200">Loading...</div>;
   }
 
   // Don't render content until we confirm the user is authenticated
@@ -127,25 +121,22 @@ export default function CreateProjectPage() {
   }
 
   return (
-    <div className="container max-w-3xl py-8 mx-auto">
+    <div className="container max-w-3xl py-8 mx-auto bg-gray-900 min-h-screen">
       <div className="mb-4">
         <Button 
           type="button" 
           variant="outline" 
           onClick={() => router.push('/dashboard')} 
-          className="flex items-center space-x-1"
+          className="flex items-center space-x-1 text-gray-300 border-gray-700 hover:bg-gray-800"
         >
           <span>←</span>
-          <span>Back to Dashboard</span>
+          <span>Back</span>
         </Button>
       </div>
       
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-center text-black">Create New Project</h1>
-          <p className="text-center text-black">
-            Tell us about your project to get started
-          </p>
+      <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700">
+        <div className="p-6 border-b border-gray-700">
+          <h1 className="text-2xl font-bold text-center text-gray-200">New Project</h1>
         </div>
         <div className="p-6">
           <div className="mb-6">
@@ -153,17 +144,17 @@ export default function CreateProjectPage() {
               {[1, 2, 3].map((stepNumber) => (
                 <div 
                   key={stepNumber}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    step >= stepNumber ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step >= stepNumber ? 'bg-blue-600 text-gray-200' : 'bg-gray-700 text-gray-400'
                   }`}
                 >
                   {stepNumber}
                 </div>
               ))}
             </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full">
+            <div className="w-full h-1 bg-gray-700 rounded-full">
               <div 
-                className="h-2 bg-blue-600 rounded-full transition-all" 
+                className="h-1 bg-blue-600 rounded-full transition-all" 
                 style={{ width: `${(step / 3) * 100}%` }}
               />
             </div>
@@ -173,45 +164,43 @@ export default function CreateProjectPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="projectName" className="block font-medium text-black">Project Name</label>
+                  <label htmlFor="projectName" className="block font-medium text-gray-300">Project Name *</label>
                   <Input
                     id="projectName"
                     name="projectName"
                     value={formData.projectName}
                     onChange={handleChange}
                     placeholder="Enter project name"
-                    className="text-gray-900"
+                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="projectDescription" className="block font-medium text-black">Project Description</label>
+                  <label htmlFor="projectDescription" className="block font-medium text-gray-300">Project Description</label>
                   <Input
                     id="projectDescription"
                     name="projectDescription"
                     value={formData.projectDescription}
                     onChange={handleChange}
-                    placeholder="Briefly describe your project in one line"
-                    className="text-gray-900"
-                    required
+                    placeholder="Briefly describe your project"
+                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="scale" className="block font-medium text-black">Project Scale</label>
+                  <label htmlFor="scale" className="block font-medium text-gray-300">Project Scale</label>
                   <select 
                     id="scale"
                     name="scale"
                     value={formData.scale}
                     onChange={handleChange}
                     className={selectClass}
-                    required
                   >
-                    <option value="" className="text-gray-900">Select scale</option>
-                    <option value="team" className="text-gray-900">Team-wide</option>
-                    <option value="department" className="text-gray-900">Department-wide</option>
-                    <option value="company" className="text-gray-900">Company-wide</option>
+                    <option value="" className="text-gray-400">Select scale</option>
+                    <option value="team" className="text-gray-200">Team-wide</option>
+                    <option value="department" className="text-gray-200">Department-wide</option>
+                    <option value="company" className="text-gray-200">Company-wide</option>
                   </select>
                 </div>
               </div>
@@ -220,21 +209,20 @@ export default function CreateProjectPage() {
             {step === 2 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="objective" className="block font-medium text-black">Objective of the Change</label>
+                  <label htmlFor="objective" className="block font-medium text-gray-300">Objective</label>
                   <Textarea
                     id="objective"
                     name="objective"
                     value={formData.objective}
                     onChange={handleChange}
-                    placeholder="What are you trying to achieve with this change?"
-                    className="text-gray-900"
+                    placeholder="What are you trying to achieve?"
+                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
                     rows={4}
-                    required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block font-medium text-black">Stakeholders (Select all that apply)</label>
+                  <label className="block font-medium text-gray-300">Stakeholders</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       "Executive Leadership",
@@ -253,9 +241,9 @@ export default function CreateProjectPage() {
                           id={stakeholder}
                           checked={formData.stakeholders.includes(stakeholder)}
                           onCheckedChange={() => handleStakeholderChange(stakeholder)}
-                          className="border-gray-700 data-[state=checked]:bg-blue-10 data-[state=checked]:border-blue-800"
+                          className="border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
-                        <label htmlFor={stakeholder} className="font-normal text-gray-900">{stakeholder}</label>
+                        <label htmlFor={stakeholder} className="font-normal text-gray-300">{stakeholder}</label>
                       </div>
                     ))}
                   </div>
@@ -266,33 +254,32 @@ export default function CreateProjectPage() {
             {step === 3 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="timeline" className="block font-medium text-black">Expected Timeline</label>
+                  <label htmlFor="timeline" className="block font-medium text-gray-300">Timeline</label>
                   <select 
                     id="timeline"
                     name="timeline"
                     value={formData.timeline}
                     onChange={handleChange}
                     className={selectClass}
-                    required
                   >
-                    <option value="" className="text-gray-900">Select timeline</option>
-                    <option value="less-than-month" className="text-gray-900">Less than 1 month</option>
-                    <option value="1-3-months" className="text-gray-900">1-3 months</option>
-                    <option value="3-6-months" className="text-gray-900">3-6 months</option>
-                    <option value="6-12-months" className="text-gray-900">6-12 months</option>
-                    <option value="more-than-year" className="text-gray-900">More than a year</option>
+                    <option value="" className="text-gray-400">Select timeline</option>
+                    <option value="less-than-month" className="text-gray-200">Less than 1 month</option>
+                    <option value="1-3-months" className="text-gray-200">1-3 months</option>
+                    <option value="3-6-months" className="text-gray-200">3-6 months</option>
+                    <option value="6-12-months" className="text-gray-200">6-12 months</option>
+                    <option value="more-than-year" className="text-gray-200">More than a year</option>
                   </select>
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="additionalInfo" className="block font-medium text-black">Additional Information</label>
+                  <label htmlFor="additionalInfo" className="block font-medium text-gray-300">Additional Notes</label>
                   <Textarea
                     id="additionalInfo"
                     name="additionalInfo"
                     value={formData.additionalInfo || ''}
                     onChange={handleChange}
-                    placeholder="Any other details you'd like to share about this project"
-                    className="text-gray-900"
+                    placeholder="Any other details you'd like to share"
+                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
                     rows={4}
                   />
                 </div>
@@ -300,9 +287,14 @@ export default function CreateProjectPage() {
             )}
           </form>
         </div>
-        <div className="p-6 border-t bg-gray-50 flex justify-between">
+        <div className="p-6 border-t border-gray-700 bg-gray-800 flex justify-between">
           {step > 1 ? (
-            <Button type="button" variant="outline" onClick={prevStep}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={prevStep}
+              className="text-gray-300 border-gray-700 hover:bg-gray-700"
+            >
               Previous
             </Button>
           ) : (
@@ -314,6 +306,7 @@ export default function CreateProjectPage() {
               type="button" 
               onClick={nextStep}
               disabled={!validateCurrentStep()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               Next
             </Button>
@@ -322,6 +315,7 @@ export default function CreateProjectPage() {
               type="submit" 
               onClick={(e) => handleSubmit(e as unknown as FormEvent<HTMLFormElement>)}
               disabled={isSubmitting || !validateCurrentStep()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isSubmitting ? 'Creating...' : 'Create Project'}
             </Button>
