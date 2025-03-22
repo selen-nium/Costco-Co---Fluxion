@@ -135,7 +135,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         Additional Info: ${project.additional_info || 'N/A'}
 
         ## Stakeholders Involved
-        ${getStakeholderNames().map(name => `- ${name}`).join('\n')}
+        ${getStakeholderNames().map((name: string) => `- ${name}`).join('\n')}
 
         ## Task Description
         For EACH of the stakeholders listed above(apart from 'Stakeholder'), create a separate guide document. Each guide should be clearly separated with a marker like "=== STAKEHOLDER GUIDE: [Stakeholder Name] ===" at the beginning and "=== END OF GUIDE ===" at the end of each guide.
