@@ -32,6 +32,12 @@ d="M28.142 28.413c-.265 1.03-.35 2.782-1.694 2.832-.11.595.413.819.89.627.472-.2
   </svg>
 );
 
+export const metadata = {
+  title: 'Fluxion | AI Assistant for Change Management',
+  description: 'Your AI-powered assistant to guide you through change.',
+};
+
+
 export default function RootLayout({
   children,
 }: {
