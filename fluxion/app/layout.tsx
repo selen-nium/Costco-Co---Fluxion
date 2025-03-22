@@ -39,7 +39,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="h-screen">
+      <body className="h-screen vsc-initialized">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
