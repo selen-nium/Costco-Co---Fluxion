@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 
+
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -98,9 +99,12 @@ export default function SignIn() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          {/* You can replace this with your logo */}
-          <div className="h-50 w-50 flex items-center justify-center">
-            <img src="/images/loginlogo.png" alt="Fluxion"></img>
+          {/* Logo section */}
+          <div className="h-40 w-full flex flex-col items-center justify-center">
+            <div className="flex items-center gap-5">
+              <img src="/logo.png" alt="Fluxion" className="h-20 w-auto"></img>
+              <h1 className="text-7xl font-bold tracking-wider text-black font-mono">Fluxion</h1>
+            </div>
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -108,14 +112,14 @@ export default function SignIn() {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <Link href="/auth/signup" className="font-medium text-black hover:text-gray-700 transition-colors duration-300">
             Sign up
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-sm border border-gray-100 sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="rounded-md bg-red-50 p-4">
@@ -150,7 +154,7 @@ export default function SignIn() {
                       <button
                         type="button"
                         onClick={resendVerificationEmail}
-                        className="text-sm font-medium text-yellow-800 underline cursor-pointer"
+                        className="text-sm font-medium text-black hover:text-gray-700 underline cursor-pointer transition-colors duration-300"
                       >
                         Resend verification email
                       </button>
@@ -173,7 +177,7 @@ export default function SignIn() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
                 />
               </div>
             </div>
@@ -191,7 +195,7 @@ export default function SignIn() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
                 />
               </div>
             </div>
@@ -202,7 +206,7 @@ export default function SignIn() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded transition-colors duration-300"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Remember me
@@ -210,7 +214,7 @@ export default function SignIn() {
               </div>
 
               <div className="text-sm">
-                <Link href="/auth/forgetpassword" className="font-medium text-indigo-600 hover:text-indigo-500">
+                <Link href="/auth/forgetpassword" className="font-medium text-black hover:text-gray-700 transition-colors duration-300">
                   Forgot your password?
                 </Link>
               </div>
@@ -220,7 +224,7 @@ export default function SignIn() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
@@ -230,7 +234,7 @@ export default function SignIn() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-gray-200" />
               </div>
             </div>
           </div>
