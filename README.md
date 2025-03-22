@@ -26,6 +26,8 @@ Fluxion is an AI assistant designed specifically for change managers to efficien
 - Node.js (v16 or higher)
 - Yarn package manager
 - Supabase account (for database and authentication)
+- Huggingface account
+- Google API Key
 
 ### Installation
 
