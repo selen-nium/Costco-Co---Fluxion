@@ -26,22 +26,44 @@ const ProjectCard = ({ project }: { project: Project }) => {
     return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) !== 1 ? 's' : ''} ago`;
   };
 
+  // Get consistent image for a project based on its ID
+  const getProjectImage = () => {
+    const assetImages = [
+      '/assets/img1.jpg',
+      '/assets/img2.jpg',
+      '/assets/img3.jpg',
+      '/assets/img4.jpg',
+      '/assets/img5.jpg',
+      '/assets/img6.jpg',
+      '/assets/img7.jpg', // Fixed typo: was img7jpg
+      '/assets/img8.jpg',
+      '/assets/img9.jpg',
+      '/assets/img10.jpg',
+    ];
+    
+    // Use project.id to determine image - converting ID to a number then modulo
+    // This ensures the same project always gets the same image
+    const projectIdNum = parseInt(project.id.replace(/\D/g, '')) || 0;
+    const imageIndex = projectIdNum % assetImages.length;
+    return assetImages[imageIndex];
+  };
+
   return (
     <Link href={`/project/${project.id}/interface`} className="block">
-      <div className="bg-white rounded-lg border border-input overflow-hidden hover:shadow-md transition-shadow">
+      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
         <div className="relative">
           <img 
-            src="/api/placeholder/400/320" 
+            src={getProjectImage()} 
             alt={project.name} 
             className="w-full h-40 object-cover" 
           />
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+          <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
             <Button variant="secondary" size="sm">Open Project</Button>
           </div>
         </div>
         <div className="p-3">
-          <h3 className="font-medium text-lg">{project.name}</h3>
-          <p className="text-sm text-muted-foreground">Last edited {getTimeAgo(project.updated_at)}</p>
+          <h3 className="font-medium text-lg text-white">{project.name}</h3>
+          <p className="text-sm text-gray-400">Last edited {getTimeAgo(project.updated_at)}</p>
         </div>
       </div>
     </Link>
@@ -86,7 +108,7 @@ export default function Dashboard() {
 
   // Show loading state while checking authentication
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">Loading...</div>;
   }
 
   // Don't render content until we confirm the user is authenticated
@@ -106,13 +128,13 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Header with user icon */}
-      <header className="bg-white shadow">
+      <header className="bg-gray-800 shadow">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-gray-900">Fluxion</h1>
+          <h1 className="text-xl font-semibold text-white">Fluxion</h1>
           <button 
-            className="user-menu-button rounded-full h-10 w-10 overflow-hidden bg-gray-200 flex items-center justify-center"
+            className="user-menu-button rounded-full h-10 w-10 overflow-hidden bg-gray-700 flex items-center justify-center"
             onClick={() => setIsSidebarOpen(true)}
           >
             {user?.user_metadata?.avatar_url ? (
@@ -122,7 +144,7 @@ export default function Dashboard() {
                 className="h-10 w-10 object-cover"
               />
             ) : (
-              <span className="font-medium text-gray-700">{getUserInitials()}</span>
+              <span className="font-medium text-gray-200">{getUserInitials()}</span>
             )}
           </button>
         </div>
@@ -136,14 +158,14 @@ export default function Dashboard() {
         <div className="flex flex-col gap-6">
           {/* Dashboard Header */}
           <div>
-            <h1 className="text-2xl font-bold">Your Projects</h1>
-            <p className="text-muted-foreground">Create and manage your Fluxion projects</p>
+            <h1 className="text-2xl font-bold text-white">Your Projects</h1>
+            <p className="text-gray-400">Create and manage your Fluxion projects</p>
           </div>
           
           {/* Create New Project Button */}
           <div>
             <Link href="/create-project">
-              <Button className="mb-4">
+              <Button className="mb-4 text-black bg-white hover:bg-white">
                 <Plus className="size-4 mr-2" />
                 Create New Project
               </Button>
@@ -152,10 +174,10 @@ export default function Dashboard() {
           
           {/* Projects Grid */}
           <div>
-            <h2 className="text-lg font-medium mb-4">Recent Projects</h2>
+            <h2 className="text-lg font-medium mb-4 text-white">Recent Projects</h2>
             
             {isLoadingProjects ? (
-              <div className="flex justify-center py-8">
+              <div className="flex justify-center py-8 text-gray-300">
                 <p>Loading your projects...</p>
               </div>
             ) : projects.length > 0 ? (
@@ -165,9 +187,9 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-input p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-                <p className="text-muted-foreground mb-4">
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
+                <h3 className="text-lg font-medium mb-2 text-white">No projects yet</h3>
+                <p className="text-gray-400 mb-4">
                   Create your first project to get started with Fluxion
                 </p>
                 <Link href="/create-project">
