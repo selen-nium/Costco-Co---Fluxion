@@ -10,10 +10,11 @@ import { useAuth } from '@/lib/auth-context';
 import { ProjectService, ProjectFormData } from '@/lib/project-service';
 import { toast } from '@/components/ui/use-toast';
 
-export default function CreateProjectPage() {
+export default function EditProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProject, setIsLoadingProject] = useState(true);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<ProjectFormData>({
     projectName: '',
@@ -31,6 +32,43 @@ export default function CreateProjectPage() {
       router.push('/auth/signin');
     }
   }, [user, isLoading, router]);
+
+  // Fetch project data
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (user && params.id) {
+        setIsLoadingProject(true);
+        const { data, error } = await ProjectService.getProjectById(params.id, user.id);
+        
+        if (data) {
+          // Map project data to form structure
+          setFormData({
+            projectName: data.name,
+            projectDescription: data.description,
+            scale: data.scale,
+            objective: data.objective,
+            stakeholders: data.project_stakeholders?.map(ps => ps.stakeholders.name) || [],
+            timeline: data.timeline,
+            additionalInfo: data.additional_info || ''
+          });
+        } else if (error) {
+          console.error('Error fetching project:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load project data.",
+            variant: "destructive"
+          });
+          router.push('/dashboard');
+        }
+        
+        setIsLoadingProject(false);
+      }
+    };
+
+    if (user) {
+      fetchProject();
+    }
+  }, [user, params.id, router]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,7 +107,7 @@ export default function CreateProjectPage() {
     if (!user) {
       toast({
         title: "Authentication Error",
-        description: "You must be logged in to create a project",
+        description: "You must be logged in to update a project",
         variant: "destructive"
       });
       return;
@@ -88,24 +126,24 @@ export default function CreateProjectPage() {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await ProjectService.createProject(formData, user);
+      const { data, error } = await ProjectService.updateProject(params.id, formData, user.id);
       
       if (error) {
         throw error;
       }
       
       toast({
-        title: "Project Created",
-        description: "Your project has been created successfully"
+        title: "Project Updated",
+        description: "Your project has been updated successfully"
       });
       
-      // Redirect to the project page or dashboard
-      router.push('/dashboard');
+      // Redirect to the project page
+      router.push(`/project/${params.id}`);
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('Error updating project:', error);
       toast({
         title: "Error",
-        description: "There was an error creating your project. Please try again.",
+        description: "There was an error updating your project. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -116,8 +154,8 @@ export default function CreateProjectPage() {
   // Common class for consistent styling across all selects
   const selectClass = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900";
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state while checking authentication or loading project
+  if (isLoading || isLoadingProject) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
@@ -132,19 +170,19 @@ export default function CreateProjectPage() {
         <Button 
           type="button" 
           variant="outline" 
-          onClick={() => router.push('/dashboard')} 
+          onClick={() => router.push(`/project/${params.id}`)} 
           className="flex items-center space-x-1"
         >
           <span>←</span>
-          <span>Back to Dashboard</span>
+          <span>Back to Project</span>
         </Button>
       </div>
       
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-center text-black">Create New Project</h1>
+          <h1 className="text-2xl font-bold text-center text-black">Edit Project</h1>
           <p className="text-center text-black">
-            Tell us about your project to get started
+            Update your project details
           </p>
         </div>
         <div className="p-6">
@@ -323,7 +361,7 @@ export default function CreateProjectPage() {
               onClick={(e) => handleSubmit(e as unknown as FormEvent<HTMLFormElement>)}
               disabled={isSubmitting || !validateCurrentStep()}
             >
-              {isSubmitting ? 'Creating...' : 'Create Project'}
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
           )}
         </div>

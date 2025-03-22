@@ -7,36 +7,52 @@ import { Plus } from "lucide-react";
 import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
+import { ProjectService, Project } from '@/lib/project-service';
+import { format } from 'date-fns';
 
-// Sample project data - in a real app, this would come from a database
-const sampleProjects = [
-  { id: 1, title: "Project 1", thumbnail: "/api/placeholder/400/320", lastEdited: "2 days ago" },
-  { id: 2, title: "Project 2", thumbnail: "/api/placeholder/400/320", lastEdited: "1 week ago" },
-  { id: 3, title: "Project 3", thumbnail: "/api/placeholder/400/320", lastEdited: "3 weeks ago" },
-  { id: 4, title: "Project 4", thumbnail: "/api/placeholder/400/320", lastEdited: "1 month ago" },
-];
+// Updated Project card component with proper typing for real data
+const ProjectCard = ({ project }: { project: Project }) => {
+  // Calculate how long ago the project was updated
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) !== 1 ? 's' : ''} ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) !== 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) !== 1 ? 's' : ''} ago`;
+  };
 
-// Project card component with proper typing
-const ProjectCard = ({ project }: { project: { id: number; title: string; thumbnail: string; lastEdited: string } }) => (
-  <Link href={`/project/${project.id}`} className="block">
-    <div className="bg-white rounded-lg border border-input overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative">
-        <img src={project.thumbnail} alt={project.title} className="w-full h-40 object-cover" />
-        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-          <Button variant="secondary" size="sm">Open Project</Button>
+  return (
+    <Link href={`/project/${project.id}`} className="block">
+      <div className="bg-white rounded-lg border border-input overflow-hidden hover:shadow-md transition-shadow">
+        <div className="relative">
+          <img 
+            src="/api/placeholder/400/320" 
+            alt={project.name} 
+            className="w-full h-40 object-cover" 
+          />
+          <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+            <Button variant="secondary" size="sm">Open Project</Button>
+          </div>
+        </div>
+        <div className="p-3">
+          <h3 className="font-medium text-lg">{project.name}</h3>
+          <p className="text-sm text-muted-foreground">Last edited {getTimeAgo(project.updated_at)}</p>
         </div>
       </div>
-      <div className="p-3">
-        <h3 className="font-medium text-lg">{project.title}</h3>
-        <p className="text-sm text-muted-foreground">Last edited {project.lastEdited}</p>
-      </div>
-    </div>
-  </Link>
-);
+    </Link>
+  );
+};
 
 export default function Dashboard() {
   const { user, session, isLoading } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const router = useRouter();
 
   // Redirect if not authenticated
@@ -45,6 +61,28 @@ export default function Dashboard() {
       router.push('/auth/signin');
     }
   }, [user, isLoading, router]);
+
+  // Fetch projects when user is authenticated
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (user) {
+        setIsLoadingProjects(true);
+        const { data, error } = await ProjectService.getUserProjects(user.id);
+        
+        if (data) {
+          setProjects(data);
+        } else if (error) {
+          console.error('Error fetching projects:', error);
+        }
+        
+        setIsLoadingProjects(false);
+      }
+    };
+
+    if (user) {
+      fetchProjects();
+    }
+  }, [user]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -115,11 +153,31 @@ export default function Dashboard() {
           {/* Projects Grid */}
           <div>
             <h2 className="text-lg font-medium mb-4">Recent Projects</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {sampleProjects.map(project => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
+            
+            {isLoadingProjects ? (
+              <div className="flex justify-center py-8">
+                <p>Loading your projects...</p>
+              </div>
+            ) : projects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {projects.map(project => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-input p-8 text-center">
+                <h3 className="text-lg font-medium mb-2">No projects yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first project to get started with Fluxion
+                </p>
+                <Link href="/create-project">
+                  <Button>
+                    <Plus className="size-4 mr-2" />
+                    Create New Project
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </main>

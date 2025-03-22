@@ -7,7 +7,7 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 import {
   AIMessage,
   BaseMessage,
-  ChatMessage,
+  ChatMessage, 
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
