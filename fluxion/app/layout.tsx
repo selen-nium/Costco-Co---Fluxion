@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { SessionProvider } from "next-auth/react";
+import { AuthProvider } from "@/lib/auth-context";
+import type { ReactNode } from "react";
 
 const publicSans = Public_Sans({ subsets: ["latin"] });
 
@@ -37,7 +40,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
+      <body className="h-screen">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
+      {/* <head>
         <title>LangChain + Next.js Template</title>
         <link rel="shortcut icon" href="/images/favicon.ico" />
         <meta
@@ -57,8 +63,8 @@ export default function RootLayout({
           content="Starter template showing how to use LangChain in Next.js projects. See source code and deploy your own at https://github.com/langchain-ai/langchain-nextjs-template!"
         />
         <meta name="twitter:image" content="/images/og-image.png" />
-      </head>
-      <body className={publicSans.className}>
+      </head> */}
+      {/* <body className={publicSans.className}>
         <NuqsAdapter>
           <div className="bg-secondary grid grid-rows-[auto,1fr] h-[100dvh]">
             <div className="grid grid-cols-[1fr,auto] gap-2 p-4">
@@ -106,7 +112,7 @@ export default function RootLayout({
           </div>
           <Toaster />
         </NuqsAdapter>
-      </body>
+      </body> */}
     </html>
   );
 }
