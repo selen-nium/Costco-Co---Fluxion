@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { 
@@ -23,7 +23,10 @@ import { toast } from '@/components/ui/use-toast';
 import html2pdf from 'html2pdf.js';
 
 export default function ProjectPage({ params }: { params: { projectId: string } }) {
-  const { projectId } = params;
+  // Unwrap the params using React.use()
+  const resolvedParams = use(params);
+  const projectId = resolvedParams.projectId;
+  
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [project, setProject] = useState<any>(null);

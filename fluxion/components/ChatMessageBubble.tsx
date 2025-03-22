@@ -6,6 +6,24 @@ export function ChatMessageBubble(props: {
   aiEmoji?: string;
   sources: any[];
 }) {
+  // More robust content handling
+  const messageContent = (() => {
+    const content = props.message.content;
+    if (typeof content === 'string') {
+      return content;
+    } else if (content === null || content === undefined) {
+      return "";
+    } else if (typeof content === 'object') {
+      try {
+        return JSON.stringify(content, null, 2);
+      } catch (e) {
+        return String(content);
+      }
+    } else {
+      return String(content);
+    }
+  })();
+
   return (
     <div
       className={cn(
@@ -23,7 +41,7 @@ export function ChatMessageBubble(props: {
       )}
 
       <div className="whitespace-pre-wrap flex flex-col">
-        <span>{props.message.content}</span>
+        <span>{messageContent}</span>
 
         {props.sources && props.sources.length ? (
           <>

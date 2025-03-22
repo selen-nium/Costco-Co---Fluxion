@@ -32,11 +32,7 @@ export const metadata = {
   title: 'Fluxion | AI Assistant for Change Management',
   description: 'Your AI-powered assistant to guide you through change.',
   icons: {
-    icon: [
-      // { url: '/favicon.ico' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
-    apple: { url: '/apple-touch-icon.png' },
+    icon: '/favicon.png', // or .png or .svg
   },
 };
 

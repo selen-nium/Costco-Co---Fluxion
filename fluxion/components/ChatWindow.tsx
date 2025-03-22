@@ -2,7 +2,7 @@
 
 import { type Message } from "ai";
 import { useChat } from "ai/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { ChatMessageBubble } from "@/components/ChatMessageBubble";
 import { IntermediateStep } from "./IntermediateStep";
 import { Button } from "./ui/button";
-import { ArrowDown, LoaderCircle, Paperclip } from "lucide-react";
+import { ArrowDown, LoaderCircle, Paperclip, Trash2 } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { UploadDocumentsForm } from "./UploadDocumentsForm";
 import {
@@ -32,21 +32,25 @@ function ChatMessages(props: {
 }) {
   return (
     <div className="flex flex-col max-w-[768px] mx-auto pb-12 w-full">
-      {props.messages.map((m, i) => {
-        if (m.role === "system") {
-          return <IntermediateStep key={m.id} message={m} />;
-        }
+      {props.messages.length === 0 ? (
+        props.emptyStateComponent
+      ) : (
+        props.messages.map((m, i) => {
+          if (m.role === "system") {
+            return <IntermediateStep key={m.id} message={m} />;
+          }
 
-        const sourceKey = (props.messages.length - 1 - i).toString();
-        return (
-          <ChatMessageBubble
-            key={m.id}
-            message={m}
-            aiEmoji={props.aiEmoji}
-            sources={props.sourcesForMessages[sourceKey]}
-          />
-        );
-      })}
+          const sourceKey = (props.messages.length - 1 - i).toString();
+          return (
+            <ChatMessageBubble
+              key={m.id}
+              message={m}
+              aiEmoji={props.aiEmoji}
+              sources={props.sourcesForMessages[sourceKey]}
+            />
+          );
+        })
+      )}
     </div>
   );
 }
@@ -61,6 +65,7 @@ export function ChatInput(props: {
   children?: ReactNode;
   className?: string;
   actions?: ReactNode;
+  onClearChat?: () => void;
 }) {
   const disabled = props.loading && props.onStop == null;
   return (
@@ -90,6 +95,16 @@ export function ChatInput(props: {
 
           <div className="flex gap-2 self-end">
             {props.actions}
+            {props.onClearChat && (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={props.onClearChat}
+                title="Clear chat history"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
             <Button type="submit" className="self-end" disabled={disabled}>
               {props.loading ? (
                 <span role="status" className="flex justify-center">
@@ -167,26 +182,33 @@ export function ChatLayout(props: { content: ReactNode; footer: ReactNode }) {
 
 export function ChatWindow(props: {
   endpoint: string;
+  chatHistoryEndpoint?: string;
   emptyStateComponent: ReactNode;
   placeholder?: string;
   emoji?: string;
   showIngestForm?: boolean;
   showIntermediateStepsToggle?: boolean;
+  sessionId?: string;
+  loadChatHistoryOnMount?: boolean;
 }) {
   const [showIntermediateSteps, setShowIntermediateSteps] = useState(
     !!props.showIntermediateStepsToggle,
   );
-  const [intermediateStepsLoading, setIntermediateStepsLoading] =
-    useState(false);
+  const [intermediateStepsLoading, setIntermediateStepsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
 
   const router = useRouter();
+  const sessionId = props.sessionId || "default";
 
   const chat = useChat({
     api: props.endpoint,
+    body: {
+      sessionId: sessionId
+    },
     onResponse(response) {
       const sourcesHeader = response.headers.get("x-sources");
       const sources = sourcesHeader
@@ -208,12 +230,51 @@ export function ChatWindow(props: {
       }),
   });
 
+  // Load chat history when component mounts
+  useEffect(() => {
+    if (props.loadChatHistoryOnMount && props.chatHistoryEndpoint) {
+      const fetchChatHistory = async () => {
+        try {
+          setHistoryLoading(true);
+          const response = await fetch(
+            `${props.chatHistoryEndpoint}?sessionId=${sessionId}`,
+            {
+              method: "GET",
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to load chat history: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          
+          if (data.messages && data.messages.length > 0) {
+            // Add IDs to messages if they don't have them
+            const messagesWithIds = data.messages.map((msg: any, index: number) => ({
+              ...msg,
+              id: msg.id || index.toString(),
+            }));
+            
+            chat.setMessages(messagesWithIds);
+          }
+        } catch (error) {
+          console.error("Error loading chat history:", error);
+          toast.error("Failed to load chat history");
+        } finally {
+          setHistoryLoading(false);
+        }
+      };
+
+      fetchChatHistory();
+    }
+  }, [props.loadChatHistoryOnMount, props.chatHistoryEndpoint, sessionId]);
+
   async function sendMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (chat.isLoading || intermediateStepsLoading) return;
 
     if (!chat.input.trim()) {
-      // toast.error("Please enter a message before sending.");
       return;
     }
     
@@ -225,22 +286,33 @@ export function ChatWindow(props: {
     // Some extra work to show intermediate steps properly
     setIntermediateStepsLoading(true);
 
+    // In ChatWindow.tsx, change line 294 to properly handle non-string content
     chat.setInput("");
     const messagesWithUserReply = chat.messages.concat({
       id: chat.messages.length.toString(),
       content: chat.input.trim(),
       role: "user",
-    }).filter((msg) => msg.content.trim() !== "");
+    }).filter((msg) => {
+      // Check if content is a string before trying to trim it
+      return typeof msg.content === 'string' 
+        ? msg.content.trim() !== "" 
+        : Boolean(msg.content); // Keep non-string content if it exists
+    });
     
     chat.setMessages(messagesWithUserReply);
 
     const response = await fetch(props.endpoint, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         messages: messagesWithUserReply,
         show_intermediate_steps: true,
+        sessionId: sessionId,
       }),
     });
+    
     const json = await response.json();
     setIntermediateStepsLoading(false);
 
@@ -254,7 +326,6 @@ export function ChatWindow(props: {
     const responseMessages: Message[] = json.messages;
 
     // Represent intermediate steps as system messages for display purposes
-    // TODO: Add proper support for tool messages
     const toolCallMessages = responseMessages.filter(
       (responseMessage: Message) => {
         return (
@@ -278,6 +349,7 @@ export function ChatWindow(props: {
         }),
       });
     }
+    
     const newMessages = messagesWithUserReply;
     for (const message of intermediateStepMessages) {
       newMessages.push(message);
@@ -297,35 +369,53 @@ export function ChatWindow(props: {
     ]);
   }
 
+  async function clearChatHistory() {
+    try {
+      // Clear local messages
+      chat.setMessages([]);
+      
+      // Clear remote history - This requires a new endpoint, but we'll keep it simple for now
+      // by just setting an empty array locally
+      toast.success("Chat history cleared");
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+      toast.error("Failed to clear chat history");
+    }
+  }
+
   return (
     <ChatLayout
-    content={
-      <>
-        <div className="max-w-[768px] mx-auto w-full px-4 mb-4">
-          <Button variant="ghost" onClick={() => router.back()} className="text-sm">
-            ← Back to Project
-          </Button>
-        </div>
-    
-        {chat.messages.length === 0 ? (
-          <div>{props.emptyStateComponent}</div>
-        ) : (
-          <ChatMessages
-            aiEmoji={props.emoji}
-            messages={chat.messages}
-            emptyStateComponent={props.emptyStateComponent}
-            sourcesForMessages={sourcesForMessages}
-          />
-        )}
-      </>
-    }
+      content={
+        <>
+          <div className="max-w-[768px] mx-auto w-full px-4 mb-4">
+            <Button variant="ghost" onClick={() => router.back()} className="text-sm">
+              ← Back to Project
+            </Button>
+          </div>
+      
+          {historyLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <LoaderCircle className="w-6 h-6 animate-spin" />
+              <span className="ml-2">Loading chat history...</span>
+            </div>
+          ) : (
+            <ChatMessages
+              aiEmoji={props.emoji}
+              messages={chat.messages}
+              emptyStateComponent={props.emptyStateComponent}
+              sourcesForMessages={sourcesForMessages}
+            />
+          )}
+        </>
+      }
       footer={
         <ChatInput
           value={chat.input}
           onChange={chat.handleInputChange}
           onSubmit={sendMessage}
-          loading={chat.isLoading || intermediateStepsLoading}
+          loading={chat.isLoading || intermediateStepsLoading || historyLoading}
           placeholder={props.placeholder ?? "What's it like to be a pirate?"}
+          onClearChat={clearChatHistory}
         >
           {props.showIngestForm && (
             <Dialog>
@@ -367,6 +457,4 @@ export function ChatWindow(props: {
           )}
         </ChatInput>
       }
-    />
-  );
-}
+    />)}

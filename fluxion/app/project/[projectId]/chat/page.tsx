@@ -2,10 +2,30 @@
 import { ChatWindow } from "@/components/ChatWindow";
 import { GuideInfoBox } from "@/components/guide/GuideInfoBox";
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function ProjectChat() {
     const params = useParams();
-    const projectId = params.projectId;
+    // For client components in Next.js 15, we need to handle params differently
+    // The params object from useParams() is a ReadonlyURLSearchParams-like object
+    // We need to convert it to a string safely
+    const [projectId, setProjectId] = useState<string>("");
+    
+    useEffect(() => {
+        // Extract and set the projectId when params are available
+        if (params && params.projectId) {
+            // Handle both string and string[] types that could come from params
+            const id = Array.isArray(params.projectId) 
+                ? params.projectId[0] 
+                : params.projectId.toString();
+            setProjectId(id);
+        }
+    }, [params]);
+
+    // Only render the chat window once we have the projectId
+    if (!projectId) {
+        return <div>Loading...</div>;
+    }
 
     const InfoCard = (
       <GuideInfoBox>
@@ -33,17 +53,19 @@ export default function ProjectChat() {
       </GuideInfoBox>
     );
     
-
-  return (
-    <ChatWindow
-      endpoint={`/project/${projectId}/api/chat/retrieval_agents`}
-      emptyStateComponent={InfoCard}
-      showIngestForm={true}
-      showIntermediateStepsToggle={true}
-      placeholder={
-        'How can we change today for a better tomorrow?'
-      }
-      emoji="🤖"
-    />
-  );
+    return (
+        <ChatWindow
+          endpoint={`/project/${projectId}/api/chat/retrieval_agents`}
+          chatHistoryEndpoint={`/project/${projectId}/api/chat/retrieval_agents`}
+          emptyStateComponent={InfoCard}
+          showIngestForm={true}
+          showIntermediateStepsToggle={true}
+          placeholder={
+            'How can we change today for a better tomorrow?'
+          }
+          emoji="🤖"
+          sessionId="default"
+          loadChatHistoryOnMount={true}
+        />
+    );
 }
