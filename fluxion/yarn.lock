@@ -261,6 +261,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@huggingface/inference@npm:^3.6.1":
+  version: 3.6.1
+  resolution: "@huggingface/inference@npm:3.6.1"
+  dependencies:
+    "@huggingface/jinja": ^0.3.3
+    "@huggingface/tasks": ^0.17.8
+  checksum: 4ee91f78fe7f34799b622806faca3a1b2a41de3b917cf6606354dfff2d8ea2970e3853590b195c86512447fbbe5a97e53f45b98ea3b66b32b2d9b1f6e25937ea
+  languageName: node
+  linkType: hard
+
+"@huggingface/jinja@npm:^0.3.3":
+  version: 0.3.3
+  resolution: "@huggingface/jinja@npm:0.3.3"
+  checksum: e4ecce1076331b5bf459b158107b5a6d3821fbf393bcf65f1dd24ef03508aa470e31a3cee77f54d65cf1f919ca8b199b678eb7223cadbdb2cfeb6f46b05fa970
+  languageName: node
+  linkType: hard
+
+"@huggingface/tasks@npm:^0.17.8":
+  version: 0.17.9
+  resolution: "@huggingface/tasks@npm:0.17.9"
+  checksum: 856a18d11426b2f8cbf93d13d2be17a6abdb3fc3ae9cc29b743851f70376daa7f48bc29e52cb8c57a32619ff752d574b486a0088716d49837952189809051406
+  languageName: node
+  linkType: hard
+
 "@humanwhocodes/config-array@npm:^0.11.10":
   version: 0.11.14
   resolution: "@humanwhocodes/config-array@npm:0.11.14"
@@ -2938,7 +2962,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:^3.2.7":
+"debug@npm:^3.1.0, debug@npm:^3.2.7":
   version: 3.2.7
   resolution: "debug@npm:3.2.7"
   dependencies:
@@ -3712,6 +3736,7 @@ __metadata:
   resolution: "fluxion@workspace:."
   dependencies:
     "@google/generative-ai": ^0.24.0
+    "@huggingface/inference": ^3.6.1
     "@langchain/community": ^0.3.36
     "@langchain/core": ^0.3.42
     "@langchain/google-genai": ^0.1.11
@@ -3746,6 +3771,7 @@ __metadata:
     next-auth: latest
     next-themes: ^0.4.4
     nuqs: ^2.3.2
+    pdf-parse: ^1.1.1
     postcss: 8.4.27
     prettier: ^3.4.2
     react: ^18.3.1
@@ -5299,6 +5325,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-ensure@npm:^0.0.0":
+  version: 0.0.0
+  resolution: "node-ensure@npm:0.0.0"
+  checksum: 1124623beb1dec66889794286ec1761ac3bfac42ce93b8652903efa5af14227edce5bafa06c4e0675cdc850360931d7c9413e3b5406150f05b2c9bf5bb3ccce4
+  languageName: node
+  linkType: hard
+
 "node-fetch@npm:^2.6.7":
   version: 2.7.0
   resolution: "node-fetch@npm:2.7.0"
@@ -5728,6 +5761,16 @@ __metadata:
   version: 4.0.0
   resolution: "path-type@npm:4.0.0"
   checksum: 5b1e2daa247062061325b8fdbfd1fb56dde0a448fb1455453276ea18c60685bdad23a445dc148cf87bc216be1573357509b7d4060494a6fd768c7efad833ee45
+  languageName: node
+  linkType: hard
+
+"pdf-parse@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "pdf-parse@npm:1.1.1"
+  dependencies:
+    debug: ^3.1.0
+    node-ensure: ^0.0.0
+  checksum: 5d63a8be1b3b8915618b1b76350409513fdd7fe03c77056b2dd7a1c2da28a11e297645e33bb4e953e2c1cd0ae66980f30fd0bed2979877f894347962d9647241
   languageName: node
   linkType: hard
 
