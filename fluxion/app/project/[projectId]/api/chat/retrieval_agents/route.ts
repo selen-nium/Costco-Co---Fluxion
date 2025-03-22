@@ -11,7 +11,6 @@ import {
 } from "@langchain/core/messages";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
-import { HuggingFaceInference } from "@huggingface/inference";
 import { createRetrieverTool } from "langchain/tools/retriever";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 

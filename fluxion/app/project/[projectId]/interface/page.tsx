@@ -618,7 +618,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                 {/* Gantt Chart Button */}
                 <div className="flex flex-col items-center">
                   <Button 
-                    className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
+                    className="w-full h-32 flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Gantt Chart')}
                     disabled={generateGanttChartLoading}
                   >
@@ -642,7 +642,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                 {/* Change Management Template Button */}
                 <div className="flex flex-col items-center">
                   <Button 
-                    className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
+                    className="w-full h-32 flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Change Management Template')}
                     disabled={generateChangeManagementLoading}
                   >
@@ -666,7 +666,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
                 {/* Todo List Button */}
                 <div className="flex flex-col items-center">
                   <Button 
-                    className="w-full h-32 flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors duration-200"
+                    className="w-full h-32 flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
                     onClick={() => handleGenerateContent('Todo List')}
                     disabled={generateTodoLoading}
                   >

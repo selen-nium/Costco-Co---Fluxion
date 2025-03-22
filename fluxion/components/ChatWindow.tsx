@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { toast } from "sonner";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-
+import { useRouter } from "next/navigation";
 import { ChatMessageBubble } from "@/components/ChatMessageBubble";
 import { IntermediateStep } from "./IntermediateStep";
 import { Button } from "./ui/button";
@@ -183,6 +183,8 @@ export function ChatWindow(props: {
     Record<string, any>
   >({});
 
+  const router = useRouter();
+
   const chat = useChat({
     api: props.endpoint,
     onResponse(response) {
@@ -297,8 +299,15 @@ export function ChatWindow(props: {
 
   return (
     <ChatLayout
-      content={
-        chat.messages.length === 0 ? (
+    content={
+      <>
+        <div className="max-w-[768px] mx-auto w-full px-4 mb-4">
+          <Button variant="ghost" onClick={() => router.back()} className="text-sm">
+            ← Back to Project
+          </Button>
+        </div>
+    
+        {chat.messages.length === 0 ? (
           <div>{props.emptyStateComponent}</div>
         ) : (
           <ChatMessages
@@ -307,8 +316,9 @@ export function ChatWindow(props: {
             emptyStateComponent={props.emptyStateComponent}
             sourcesForMessages={sourcesForMessages}
           />
-        )
-      }
+        )}
+      </>
+    }
       footer={
         <ChatInput
           value={chat.input}
