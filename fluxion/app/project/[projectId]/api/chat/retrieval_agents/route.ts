@@ -16,6 +16,7 @@ import { createRetrieverTool } from "langchain/tools/retriever";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { BaseChatMessageHistory } from "@langchain/core/chat_history";
+import { SerpAPI } from "@langchain/community/tools/serpapi";
 
 // Add validation function to filter out empty messages
 const validateMessages = (messages: BaseMessage[]): BaseMessage[] => {
@@ -364,10 +365,31 @@ export async function GET(
   }
 }
 
-const AGENT_SYSTEM_TEMPLATE = `You are a change management professional specialized in change management. 
-You have access to a tool called "search_latest_knowledge" that searches documents uploaded by the user.
-You MUST call this tool to retrieve relevant information before answering ANY user question.
-Remember previous conversations with the user and refer to them when appropriate.`;
+const AGENT_SYSTEM_TEMPLATE = `You are an experienced change management consultant with deep expertise in organizational transformation, stakeholder engagement, and adoption strategies. Your background includes working with diverse industries to implement complex change initiatives.
+
+When interacting with users:
+
+1. First try using the search_uploaded_documents tool to find information from documents the user has uploaded. This ensures your responses incorporate their specific organizational context, methodologies, and terminology.
+
+2. Only if relevant information cannot be found in the uploaded documents, use the search_web tool to find information online. When using web search, clearly indicate that this information is from external sources.
+
+3. If the web search fails or returns unreliable results, gracefully fall back to using only the information from uploaded documents. You can inform the user that you couldn't find reliable web information but are providing insights based on their uploaded materials.
+
+4. Prioritize information from uploaded documents over web search results when both are available.
+
+4. Maintain context awareness by referencing previous conversations where relevant. Draw connections between current questions and past discussions to provide continuity and demonstrate understanding of the user's ongoing change journey.
+
+5. Structure your responses to include:
+   - Insights from relevant uploaded materials (primary source)
+   - Web search information (only when necessary as secondary source)
+   - Practical recommendations tailored to their situation
+   - Questions that encourage deeper exploration where appropriate
+
+6. Balance theoretical frameworks with actionable guidance. Whenever you explain change management concepts, include specific implementation steps.
+
+7. At natural points in the conversation, check in with the user about the quality and relevance of your assistance. Ask open-ended questions about how well your recommendations address their specific needs or what additional information would be helpful.
+
+8. Adapt your approach based on user feedback, becoming increasingly tailored to their specific change management challenges and communication preferences over time.`;
 
 export async function POST(
   req: NextRequest,
@@ -398,12 +420,13 @@ export async function POST(
       model: "gemini-2.0-flash",
       temperature: 0,
       maxOutputTokens: 2048,
+      apiKey: process.env.GOOGLE_API_KEY || "", // Ensure API key is provided
     });
 
     // Initialize Supabase client and vector store
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PRIVATE_KEY) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PRIVATE_KEY || !process.env.GOOGLE_API_KEY) {
       return NextResponse.json(
-        { error: "Supabase credentials not configured" },
+        { error: "Required credentials not configured (Supabase or Google API)" },
         { status: 500 }
       );
     }
@@ -424,17 +447,138 @@ export async function POST(
       queryName: "match_documents",
     });
 
-    // Create retriever and tool
-    const retriever = vectorstore.asRetriever();
-    const tool = createRetrieverTool(retriever, {
-      name: "search_latest_knowledge",
-      description: "Searches and returns up-to-date general information.",
+    // Create document retriever tool
+    const retriever = vectorstore.asRetriever({
+      k: 5, // Retrieve 5 most relevant documents
+    });
+    
+    const documentTool = createRetrieverTool(retriever, {
+      name: "search_uploaded_documents",
+      description: "Searches through the user's uploaded documents for relevant information. Always try this first.",
     });
 
-    // Create the agent
+    // Create SerpAPI tool for web fallback with proper error handling
+    class EnhancedSerpAPI extends SerpAPI {
+      async _call(input: string): Promise<string> {
+        try {
+          // Use a more specific query structure to improve results
+          const enhancedInput = `${input}`;
+          
+          // Call the original SerpAPI implementation
+          const result = await super._call(enhancedInput);
+          
+          console.log("SerpAPI raw result for query '" + input + "' (first 200 chars):", 
+                     result.substring(0, 200) + (result.length > 200 ? "..." : ""));
+          
+          // Check if the result is JSON format (starts with { or [)
+          if ((result.trim().startsWith('{') || result.trim().startsWith('[')) && 
+              (result.includes('"organic_results"') || result.includes('"related_questions"'))) {
+            try {
+              const parsed = JSON.parse(result);
+              
+              // Initialize an array to store formatted results
+              let extractedInfo: string[] = [];
+              extractedInfo.push(`Based on web search results about "${input}":\n`);
+              
+              // Extract organic results
+              if (parsed.organic_results && parsed.organic_results.length > 0) {
+                extractedInfo.push("## Top Search Results");
+                parsed.organic_results.slice(0, 5).forEach((item: any, index: number) => {
+                  if (item.title) {
+                    extractedInfo.push(`${index + 1}. ${item.title}`);
+                    if (item.snippet) {
+                      extractedInfo.push(`   ${item.snippet}`);
+                    }
+                    if (item.source) {
+                      extractedInfo.push(`   Source: ${item.source}`);
+                    }
+                    extractedInfo.push("");
+                  }
+                });
+              }
+              
+              // Extract related questions/answers
+              if (parsed.related_questions && parsed.related_questions.length > 0) {
+                extractedInfo.push("## Frequently Asked Questions");
+                parsed.related_questions.forEach((item: any, index: number) => {
+                  if (item.question) {
+                    extractedInfo.push(`Q: ${item.question}`);
+                    
+                    if (item.snippet) {
+                      extractedInfo.push(`A: ${item.snippet}`);
+                    } else if (item.list && item.list.length > 0) {
+                      extractedInfo.push("A:");
+                      item.list.forEach((listItem: string) => {
+                        extractedInfo.push(`- ${listItem.trim()}`);
+                      });
+                    }
+                    extractedInfo.push("");
+                  }
+                });
+              }
+              
+              // Extract answer box content if available
+              if (parsed.answer_box && parsed.answer_box.expanded_list) {
+                extractedInfo.push("## Key Trends");
+                parsed.answer_box.expanded_list.forEach((item: any, index: number) => {
+                  if (item.title) {
+                    extractedInfo.push(`- ${item.title}`);
+                  }
+                });
+                extractedInfo.push("");
+              }
+              
+              // If we've extracted meaningful information, return it
+              if (extractedInfo.length > 3) { // More than just the header and empty sections
+                return extractedInfo.join("\n");
+              }
+            } catch (e) {
+              console.log("Failed to parse SerpAPI JSON result:", e);
+              // Continue to fallback extraction methods
+            }
+          }
+          
+          // If JSON parsing didn't work, try to extract content as best we can from text
+          // Check if the result contains useful information
+          if (result.includes("Related Questions") || result.includes("organic_results") || 
+              result.includes("snippet") || result.length > 300) {
+            
+            // Remove any problematic patterns or formatting
+            const cleanedResult = result
+              .replace(/entity_type: related_questions/g, "")
+              .replace(/serpapi_link|next_page_token|google_url|raw_html_file/g, "")
+              .replace(/\\n/g, "\n")
+              .replace(/\\/g, "");
+            
+            // Return with a nice header
+            return `Web search results for "${input}":\n\n${cleanedResult}`;
+          }
+          
+          // If we get here, the result might not be very useful
+          return `I found limited information about "${input}" from web search. I'll rely primarily on information from your uploaded documents.`;
+          
+        } catch (error: unknown) {
+          console.error("SerpAPI search error:", error);
+          // Return a user-friendly message instead of throwing
+          return `Web search is currently unavailable for "${input}". I'll rely on information from your uploaded documents.`;
+        }
+      }
+    }
+    
+    const serpApiTool = new EnhancedSerpAPI(process.env.SERPAPI_API_KEY, {
+      location: "United States",
+      hl: "en",
+      gl: "us",
+    });
+
+    // Rename the SerpAPI tool to be clearer about its purpose
+    serpApiTool.name = "search_web";
+    serpApiTool.description = "Search the web for information not found in the uploaded documents. Use this only when the document search doesn't provide sufficient information. If search fails, focus on information from uploaded documents.";
+
+    // Create the agent with both tools
     const agent = await createReactAgent({
       llm: chatModel,
-      tools: [tool],
+      tools: [documentTool, serpApiTool],
       messageModifier: new SystemMessage(AGENT_SYSTEM_TEMPLATE),
     });
     
@@ -473,7 +617,25 @@ export async function POST(
           { messages: validatedMessages, history: [] },
           { 
             version: "v2",
-            configurable: { sessionId } // Add sessionId to the configurable options
+            configurable: { sessionId }, // Add sessionId to the configurable options
+            callbacks: [{
+              handleToolError: async (err: unknown) => {
+                // Errors should be less common now as EnhancedSerpAPI handles most cases
+                // This is a fallback for any unhandled errors
+                console.error("Unhandled tool error:", err);
+                
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                
+                if (errorMessage.includes("SerpAPI") || 
+                    errorMessage.includes("search") ||
+                    errorMessage.includes("web")) {
+                  return "I couldn't complete the web search. Let me focus on information from your uploaded documents instead.";
+                }
+                
+                // For other tool errors, return a generic message
+                return "I encountered an issue with one of my tools. Let me try to answer based on what I know.";
+              }
+            }]
           },
         );
   
@@ -531,7 +693,17 @@ export async function POST(
             history: [],
           },
           {
-            configurable: { sessionId } // Add sessionId to the configurable options
+            configurable: { sessionId }, // Add sessionId to the configurable options
+            callbacks: [{
+              handleToolError: async (err) => {
+                if (err.message.includes("SerpAPI")) {
+                  // Convert SerpAPI errors to a friendly message
+                  return "I couldn't access external search results at the moment. I'll work with the information available in your uploaded documents.";
+                }
+                // Pass through other errors
+                throw err;
+              }
+            }]
           }
         );
         
