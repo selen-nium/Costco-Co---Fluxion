@@ -161,7 +161,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   };
 
   // Common class for consistent styling across all selects
-  const selectClass = "w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-800 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const selectClass = "w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-900 text-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
   // Show loading state while checking authentication or loading project
   if (isLoading || isLoadingProject) {
@@ -174,206 +174,200 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="container max-w-3xl py-8 mx-auto bg-gray-900 min-h-screen">
-      <div className="mb-4">
+    <div className="min-h-screen bg-gray-900 text-gray-200 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
         <Button 
           type="button" 
-          variant="outline" 
+          variant="ghost" 
           onClick={handleBackClick}
-          className="flex items-center space-x-1 text-gray-300 border-gray-700 hover:bg-gray-800"
+          className="mb-6 text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
         >
-          <span>←</span>
-          <span>Back</span>
+          ← Back
         </Button>
-      </div>
-      
-      <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700">
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-2xl font-bold text-center text-gray-200">Edit Project</h1>
-        </div>
-        <div className="p-6">
-          <div className="mb-6">
-            <div className="flex justify-between mb-2">
-              {[1, 2, 3].map((stepNumber) => (
+        
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-white">Edit Project</h1>
+          <div className="mt-4 flex items-center space-x-1">
+            {[1, 2, 3].map((stepNumber) => (
+              <div key={stepNumber} className="flex-1">
                 <div 
-                  key={stepNumber}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    step >= stepNumber ? 'bg-blue-600 text-gray-200' : 'bg-gray-700 text-gray-400'
+                  className={`h-1 rounded-full ${
+                    step >= stepNumber ? 'bg-gray-200' : 'bg-gray-700'
                   }`}
-                >
-                  {stepNumber}
+                />
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  {stepNumber === 1 ? 'Basics' : stepNumber === 2 ? 'Details' : 'Final'}
                 </div>
-              ))}
-            </div>
-            <div className="w-full h-1 bg-gray-700 rounded-full">
-              <div 
-                className="h-1 bg-blue-600 rounded-full transition-all" 
-                style={{ width: `${(step / 3) * 100}%` }}
-              />
-            </div>
+              </div>
+            ))}
           </div>
-
-          <form onSubmit={handleSubmit}>
-            {step === 1 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="projectName" className="block font-medium text-gray-300">Project Name *</label>
-                  <Input
-                    id="projectName"
-                    name="projectName"
-                    value={formData.projectName}
-                    onChange={handleChange}
-                    placeholder="Enter project name"
-                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="projectDescription" className="block font-medium text-gray-300">Project Description</label>
-                  <Input
-                    id="projectDescription"
-                    name="projectDescription"
-                    value={formData.projectDescription}
-                    onChange={handleChange}
-                    placeholder="Briefly describe your project"
-                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="scale" className="block font-medium text-gray-300">Project Scale</label>
-                  <select 
-                    id="scale"
-                    name="scale"
-                    value={formData.scale}
-                    onChange={handleChange}
-                    className={selectClass}
-                  >
-                    <option value="" className="text-gray-400">Select scale</option>
-                    <option value="team" className="text-gray-200">Team-wide</option>
-                    <option value="department" className="text-gray-200">Department-wide</option>
-                    <option value="company" className="text-gray-200">Company-wide</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="objective" className="block font-medium text-gray-300">Objective</label>
-                  <Textarea
-                    id="objective"
-                    name="objective"
-                    value={formData.objective}
-                    onChange={handleChange}
-                    placeholder="What are you trying to achieve?"
-                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
-                    rows={4}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block font-medium text-gray-300">Stakeholders</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      "Executive Leadership",
-                      "Department Managers",
-                      "Team Leaders",
-                      "End Users",
-                      "IT Department",
-                      "HR Department",
-                      "Finance Department",
-                      "External Clients",
-                      "Vendors/Partners",
-                      "Regulatory Bodies"
-                    ].map((stakeholder) => (
-                      <div key={stakeholder} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={stakeholder}
-                          checked={formData.stakeholders.includes(stakeholder)}
-                          onCheckedChange={() => handleStakeholderChange(stakeholder)}
-                          className="border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                        />
-                        <label htmlFor={stakeholder} className="font-normal text-gray-300">{stakeholder}</label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="timeline" className="block font-medium text-gray-300">Timeline</label>
-                  <select 
-                    id="timeline"
-                    name="timeline"
-                    value={formData.timeline}
-                    onChange={handleChange}
-                    className={selectClass}
-                  >
-                    <option value="" className="text-gray-400">Select timeline</option>
-                    <option value="less-than-month" className="text-gray-200">Less than 1 month</option>
-                    <option value="1-3-months" className="text-gray-200">1-3 months</option>
-                    <option value="3-6-months" className="text-gray-200">3-6 months</option>
-                    <option value="6-12-months" className="text-gray-200">6-12 months</option>
-                    <option value="more-than-year" className="text-gray-200">More than a year</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="additionalInfo" className="block font-medium text-gray-300">Additional Notes</label>
-                  <Textarea
-                    id="additionalInfo"
-                    name="additionalInfo"
-                    value={formData.additionalInfo || ''}
-                    onChange={handleChange}
-                    placeholder="Any other details you'd like to share"
-                    className="bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
-                    rows={4}
-                  />
-                </div>
-              </div>
-            )}
-          </form>
         </div>
-        <div className="p-6 border-t border-gray-700 bg-gray-800 flex justify-between">
-          {step > 1 ? (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={prevStep}
-              className="text-gray-300 border-gray-700 hover:bg-gray-700"
-            >
-              Previous
-            </Button>
-          ) : (
-            <div></div> // Empty div for spacing
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {step === 1 && (
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="projectName" className="block text-sm font-medium text-gray-300 mb-1">Project Name *</label>
+                <Input
+                  id="projectName"
+                  name="projectName"
+                  value={formData.projectName}
+                  onChange={handleChange}
+                  placeholder="Enter project name"
+                  className="bg-gray-900 border-gray-700 text-gray-200 placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-300 mb-1">Project Description</label>
+                <Textarea
+                  id="projectDescription"
+                  name="projectDescription"
+                  value={formData.projectDescription}
+                  onChange={handleChange}
+                  placeholder="Briefly describe your project"
+                  className="bg-gray-900 border-gray-700 text-gray-200 placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500"
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="scale" className="block text-sm font-medium text-gray-300 mb-1">Project Scale</label>
+                <select 
+                  id="scale"
+                  name="scale"
+                  value={formData.scale}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="" className="text-gray-500">Select scale</option>
+                  <option value="team" className="text-gray-200">Team-wide</option>
+                  <option value="department" className="text-gray-200">Department-wide</option>
+                  <option value="company" className="text-gray-200">Company-wide</option>
+                </select>
+              </div>
+            </div>
           )}
-          
-          {step < 3 ? (
-            <Button 
-              type="button" 
-              onClick={nextStep}
-              disabled={!validateCurrentStep()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Next
-            </Button>
-          ) : (
-            <Button 
-              type="submit" 
-              onClick={(e) => handleSubmit(e as unknown as FormEvent<HTMLFormElement>)}
-              disabled={isSubmitting || !validateCurrentStep()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
-            </Button>
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="objective" className="block text-sm font-medium text-gray-300 mb-1">Objective</label>
+                <Textarea
+                  id="objective"
+                  name="objective"
+                  value={formData.objective}
+                  onChange={handleChange}
+                  placeholder="What are you trying to achieve?"
+                  className="bg-gray-900 border-gray-700 text-gray-200 placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500"
+                  rows={4}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">Stakeholders</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                  {[
+                    "Executive Leadership",
+                    "Department Managers",
+                    "Team Leaders",
+                    "End Users",
+                    "IT Department",
+                    "HR Department",
+                    "Finance Department",
+                    "External Clients",
+                    "Vendors/Partners",
+                    "Regulatory Bodies"
+                  ].map((stakeholder) => (
+                    <div key={stakeholder} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={stakeholder}
+                        checked={formData.stakeholders.includes(stakeholder)}
+                        onCheckedChange={() => handleStakeholderChange(stakeholder)}
+                        className="border-gray-600 text-gray-200 data-[state=checked]:bg-gray-200 data-[state=checked]:border-gray-200"
+                      />
+                      <label htmlFor={stakeholder} className="font-normal text-gray-300 text-sm">{stakeholder}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
-        </div>
+
+          {step === 3 && (
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="timeline" className="block text-sm font-medium text-gray-300 mb-1">Timeline</label>
+                <select 
+                  id="timeline"
+                  name="timeline"
+                  value={formData.timeline}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="" className="text-gray-500">Select timeline</option>
+                  <option value="less-than-month" className="text-gray-200">Less than 1 month</option>
+                  <option value="1-3-months" className="text-gray-200">1-3 months</option>
+                  <option value="3-6-months" className="text-gray-200">3-6 months</option>
+                  <option value="6-12-months" className="text-gray-200">6-12 months</option>
+                  <option value="more-than-year" className="text-gray-200">More than a year</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-300 mb-1">Additional Notes</label>
+                <Textarea
+                  id="additionalInfo"
+                  name="additionalInfo"
+                  value={formData.additionalInfo || ''}
+                  onChange={handleChange}
+                  placeholder="Any other details you'd like to share"
+                  className="bg-gray-900 border-gray-700 text-gray-200 placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500"
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between pt-4 border-t border-gray-800">
+            {step > 1 ? (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={prevStep}
+                className="text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              >
+                Previous
+              </Button>
+            ) : (
+              <div></div> // Empty div for spacing
+            )}
+            
+            {step < 3 ? (
+              <Button 
+                type="button" 
+                onClick={nextStep}
+                disabled={!validateCurrentStep()}
+                className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
+              >
+                Next
+              </Button>
+            ) : (
+              <Button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e as unknown as FormEvent<HTMLFormElement>);
+                }}
+                disabled={isSubmitting || !validateCurrentStep()}
+                className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );

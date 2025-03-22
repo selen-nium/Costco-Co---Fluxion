@@ -744,7 +744,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-black hover:bg-gray-800"
+              className="text-white hover:bg-white"
               onClick={() => router.push(`/edit-project/${projectId}`)}
             >
               <Edit className="h-4 w-4" />
