@@ -1,5 +1,5 @@
 'use client';
-
+import GanttChartViewer from '@/components/GanttChartViewer';
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -196,22 +196,32 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
     try {
       // Create a prompt based on project details
       const prompt = `
-        Generate a Gantt chart (in mermaid syntax) for the following project:
-        
-        Project Name: ${project.name}
-        Description: ${project.description}
-        Objective: ${project.objective}
-        Scale: ${project.scale}
-        Timeline: ${getTimelineText(project.timeline)}
-        Stakeholders: ${getStakeholderNames().join(', ')}
-        Additional Info: ${project.additional_info || 'N/A'}
-        
-        Create a detailed Gantt chart that includes key milestones, tasks, and dependencies that will help successfully complete this project.
-        Include planning, execution, monitoring, and closing phases of the project.
-        Format the response in text form.
-        Current date is 23/3/2025.
-        The chart should be realistic for the given timeline of ${getTimelineText(project.timeline)}.
-      `;
+      Generate a Gantt chart using Mermaid syntax for the following project.
+      
+      Project Name: ${project.name}
+      Description: ${project.description}
+      Objective: ${project.objective}
+      Scale: ${project.scale}
+      Timeline: ${getTimelineText(project.timeline)}
+      Stakeholders: ${getStakeholderNames().join(', ')}
+      Additional Info: ${project.additional_info || 'N/A'}
+    
+      Requirements:
+      - The chart should include the following phases: Planning, Execution, Monitoring, and Closing.
+      - Use realistic task durations and dependencies based on the timeline provided.
+      - Mermaid version is 8.14.0. Ensure strict compatibility.
+      - The date starts with 2025-03-23
+      - **DO NOT use spaces in task names**. Replace them with underscores or use quoted labels.
+      - Use this format for each task: Label :id, start_date or dependency, duration
+      - Example:
+        section Planning
+        "Project_Setup" :a1, 2025-03-23, 3d
+        "Team_Alignment" :a2, after a1, 2d
+    
+      Output ONLY the raw Mermaid chart with no explanation or code block formatting.
+      Begin with \`gantt\`, then define \`dateFormat\`, \`title\`, and the chart body.
+    `;
+    
   
       // Call the AI API
       const response = await fetch(`/project/${projectId}/api/chat/retrieval_agents`, {
@@ -766,11 +776,28 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
             
             {/* Popup Content */}
             <div className="p-6 overflow-y-auto flex-grow">
+              {
+                ganttChartContent.includes('gantt') ? (
+                  <GanttChartViewer
+                    chart={ganttChartContent
+                      .replace(/```mermaid/g, '')
+                      .replace(/```/g, '')
+                      .trim()}
+                  />
+                ) : (
+                  <div
+                    className="prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={renderMarkdown(ganttChartContent)}
+                  />
+                )
+              }
+
               {/* Gantt Chart content with Markdown rendering */}
-              <div 
+              {/* <GanttChartViewer chart={ganttChartContent} /> */}
+              {/* <div 
                 className="prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={renderMarkdown(ganttChartContent)}
-              />
+              /> */}
             </div>
             
             {/* Popup Footer */}
