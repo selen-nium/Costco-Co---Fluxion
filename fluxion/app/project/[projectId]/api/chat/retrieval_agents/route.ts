@@ -478,28 +478,30 @@ export async function POST(
         );
   
         const textEncoder = new TextEncoder();
-        const transformStream = new ReadableStream({
-          async start(controller) {
-            let responseContent = "";
-            
-            for await (const { event, data } of eventStream) {
-              if (event === "on_chat_model_stream") {
-                if (!!data.chunk.content) {
-                  controller.enqueue(textEncoder.encode(data.chunk.content));
-                  responseContent += data.chunk.content;
-                }
+       // In your chat/retrieval_agents route
+      const transformStream = new ReadableStream({
+        async start(controller) {
+          let responseContent = "";
+          
+          try {
+            for await (const chunk of eventStream) {
+              console.log("Received event chunk:", chunk);
+              
+              if (chunk.event === "on_chat_model_stream" && chunk.data?.chunk?.content) {
+                const content = chunk.data.chunk.content;
+                controller.enqueue(textEncoder.encode(content));
+                responseContent += content;
+                console.log("Current accumulated response:", responseContent);
               }
             }
-            
-            // Only save the AI response if we determined we need to do manual saving
-            if (responseContent && shouldSaveAIResponse) {
-              console.log("Manually saving AI response to message history");
-              await messageHistory.addMessage(new AIMessage(responseContent));
-            }
-            
+            console.log("Final complete response:", responseContent);
+          } catch (error) {
+            console.error("Error in stream processing:", error);
+          } finally {
             controller.close();
-          },
-        });
+          }
+        },
+      });
   
         return new StreamingTextResponse(transformStream);
       } catch (error) {
