@@ -204,30 +204,32 @@ export function ChatWindow(props: {
   const router = useRouter();
   const sessionId = props.sessionId || "default";
 
+  // In ChatWindow.tsx, modify the useChat call to better handle errors
   const chat = useChat({
     api: props.endpoint,
     body: {
       sessionId: sessionId
     },
     onResponse(response) {
-      const sourcesHeader = response.headers.get("x-sources");
-      const sources = sourcesHeader
-        ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
-        : [];
-
-      const messageIndexHeader = response.headers.get("x-message-index");
-      if (sources.length && messageIndexHeader !== null) {
-        setSourcesForMessages({
-          ...sourcesForMessages,
-          [messageIndexHeader]: sources,
-        });
-      }
+      // Existing code
     },
     streamMode: "text",
-    onError: (e) =>
+    onError: (e) => {
+      console.error("Chat API error:", e);
       toast.error(`Error while processing your request`, {
-        description: e.message,
-      }),
+        description: e.message || "Please try again",
+      });
+      
+      // Add error recovery - append an error message to the chat
+      chat.setMessages([
+        ...chat.messages,
+        {
+          id: Date.now().toString(),
+          content: "Sorry, I encountered an error processing your request. Please try again.",
+          role: "assistant"
+        }
+      ]);
+    },
   });
 
   // Load chat history when component mounts

@@ -3,6 +3,7 @@ import { ChatWindow } from "@/components/ChatWindow";
 import { GuideInfoBox } from "@/components/guide/GuideInfoBox";
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from "sonner";
 
 export default function ProjectChat() {
     const params = useParams();
@@ -21,6 +22,25 @@ export default function ProjectChat() {
             setProjectId(id);
         }
     }, [params]);
+
+    // In your ProjectChat.tsx component, add this
+    useEffect(() => {
+      // Set up an error handler for unhandled promise rejections
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        console.error("Unhandled rejection:", event.reason);
+        
+        // Show a toast notification for the error
+        toast.error("Connection error", {
+          description: "There was a problem connecting to the chat service. Please try again."
+        });
+      };
+
+      window.addEventListener('unhandledrejection', handleUnhandledRejection);
+      
+      return () => {
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      };
+    }, []);
 
     // Only render the chat window once we have the projectId
     if (!projectId) {

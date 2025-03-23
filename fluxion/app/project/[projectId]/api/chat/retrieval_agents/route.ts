@@ -479,24 +479,43 @@ export async function POST(
   
         const textEncoder = new TextEncoder();
        // In your chat/retrieval_agents route
-      const transformStream = new ReadableStream({
+       const transformStream = new ReadableStream({
         async start(controller) {
           let responseContent = "";
           
           try {
-            for await (const chunk of eventStream) {
-              console.log("Received event chunk:", chunk);
-              
-              if (chunk.event === "on_chat_model_stream" && chunk.data?.chunk?.content) {
-                const content = chunk.data.chunk.content;
-                controller.enqueue(textEncoder.encode(content));
-                responseContent += content;
-                console.log("Current accumulated response:", responseContent);
+            // In your route.ts POST handler, update how you process events
+            for await (const event of eventStream) {
+              try {
+                // Handle different event types from LangGraph
+                if (event.event === "on_chat_model_stream") {
+                  if (event.data?.chunk?.content) {
+                    controller.enqueue(textEncoder.encode(event.data.chunk.content));
+                    responseContent += event.data.chunk.content;
+                  }
+                } 
+                // Add specific handling for tool calls
+                else if (event.event === "on_tool_start" || 
+                        event.event === "on_tool_end" || 
+                        event.event === "on_chain_start" || 
+                        event.event === "on_chain_end") {
+                  // Log but don't send to client
+                  console.log(`LangGraph event: ${event.event}`);
+                }
+              } catch (error) {
+                console.error("Error processing event:", error, "Event:", event);
               }
             }
-            console.log("Final complete response:", responseContent);
+            
+            // Only save AI response if needed and if we have content
+            if (responseContent) {
+              await messageHistory.addMessage(new AIMessage(responseContent));
+            }
           } catch (error) {
-            console.error("Error in stream processing:", error);
+            console.error("Stream processing error:", error);
+            // Provide a fallback response on error
+            const errorMessage = "I encountered an error processing your request. Please try again.";
+            controller.enqueue(textEncoder.encode(errorMessage));
           } finally {
             controller.close();
           }
