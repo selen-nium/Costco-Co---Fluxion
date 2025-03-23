@@ -243,25 +243,9 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
       // If no guides were properly separated, try an alternative parsing approach
       if (Object.keys(guides).length === 0) {
         const stakeholderNames = getStakeholderNames();
-        
-        // Helper function to escape special regex characters
-        const escapeRegExp = (string: string): string => {
-          return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        };
-        
         for (const name of stakeholderNames) {
-          // Escape the name before using it in regex
-          const escapedName = escapeRegExp(name);
-          
-          // Create escaped versions of all stakeholder names for the alternation
-          const escapedStakeholderNames = stakeholderNames.map(escapeRegExp);
-          
-          // Fixed regex with properly escaped names and balanced parentheses
-          const regex = new RegExp(
-            `(?:#+\\s*${escapedName}|${escapedName})[\\s\\S]*?(?=(?:#+\\s*(?:${escapedStakeholderNames.join('|')})|$))`, 
-            'i'
-          );
-          
+          // Try to find sections that might correspond to each stakeholder
+          const regex = new RegExp(`(?:#+\\s*${name}|${name}[\\s\\S]*?(?=(?:#+\\s*(?:${stakeholderNames.join('|')})|$))`, 'i');
           const match = fullContent.match(regex);
           if (match && match[0]) {
             guides[name] = match[0].trim();
