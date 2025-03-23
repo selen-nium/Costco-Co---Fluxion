@@ -241,38 +241,59 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
       }
       
       // If no guides were properly separated, try an alternative parsing approach
-      if (Object.keys(guides).length === 0) {
-        const stakeholderNames = getStakeholderNames();
-        
-        // Helper function to escape special regex characters
-        const escapeRegExp = (string: string): string => {
-          return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        };
-        
-        for (const name of stakeholderNames) {
-          // Escape the name before using it in regex
-          const escapedName = escapeRegExp(name);
+      // Replace the problematic regular expression code in handleGenerateStakeholderGuides function
+
+    // If no guides were properly separated, try an alternative parsing approach
+    if (Object.keys(guides).length === 0) {
+      const stakeholderNames = getStakeholderNames();
+      
+      for (const name of stakeholderNames) {
+        try {
+          // Create a simple pattern to find content for each stakeholder
+          // This avoids complex regex with lookaheads that can cause syntax errors
+          const pattern = new RegExp(`(#+ *${name}|${name} *#+)[\\s\\S]+?(?=(#+ *|$))`, 'i');
           
-          // Create escaped versions of all stakeholder names for the alternation
-          const escapedStakeholderNames = stakeholderNames.map(escapeRegExp);
-          
-          // Fixed regex with properly escaped names and balanced parentheses
-          const regex = new RegExp(
-            `(?:#+\\s*${escapedName}|${escapedName})[\\s\\S]*?(?=(?:#+\\s*(?:${escapedStakeholderNames.join('|')})|$))`, 
-            'i'
-          );
-          
-          const match = fullContent.match(regex);
+          const match = fullContent.match(pattern);
           if (match && match[0]) {
             guides[name] = match[0].trim();
           }
-        }
-        
-        // If still no guides, just use the full content for the first stakeholder
-        if (Object.keys(guides).length === 0 && stakeholderNames.length > 0) {
-          guides[stakeholderNames[0]] = fullContent;
+        } catch (error) {
+          console.error(`Error parsing content for stakeholder ${name}:`, error);
+          // Continue with other stakeholders even if one fails
         }
       }
+      
+      // Last resort: find headings that match stakeholder names
+      if (Object.keys(guides).length === 0) {
+        // Find all headings in the content
+        const headings = fullContent.match(/#+ .*?(?=\n|$)/g) || [];
+        
+        for (const heading of headings) {
+          // Check if any stakeholder name appears in a heading
+          for (const name of stakeholderNames) {
+            if (heading.toLowerCase().includes(name.toLowerCase())) {
+              // Found a heading with stakeholder name, extract content until next heading
+              const startIdx = fullContent.indexOf(heading);
+              let endIdx = fullContent.length;
+              
+              // Find the next heading if any
+              const nextHeadingMatch = fullContent.slice(startIdx + heading.length).match(/\n#+ /);
+              if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
+                endIdx = startIdx + heading.length + nextHeadingMatch.index;
+              }
+              
+              guides[name] = fullContent.slice(startIdx, endIdx).trim();
+              break;
+            }
+          }
+        }
+      }
+      
+      // If still no guides, just use the full content for the first stakeholder
+      if (Object.keys(guides).length === 0 && stakeholderNames.length > 0) {
+        guides[stakeholderNames[0]] = fullContent;
+      }
+    }
       
       setStakeholderGuides(guides);
       
