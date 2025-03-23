@@ -16,6 +16,7 @@ import { createRetrieverTool } from "langchain/tools/retriever";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { BaseChatMessageHistory } from "@langchain/core/chat_history";
+import { unknown } from "zod";
 
 // Add validation function to filter out empty messages
 const validateMessages = (messages: BaseMessage[]): BaseMessage[] => {
@@ -398,6 +399,7 @@ export async function POST(
       model: "gemini-2.0-flash",
       temperature: 0.7,
       maxOutputTokens: 4096,
+      apiKey: process.env.GOOGLE_API_KEY,
     });
 
     // Initialize Supabase client and vector store
@@ -431,6 +433,30 @@ export async function POST(
       description: "Searches and returns up-to-date general information.",
     });
 
+    // Debug LangGraph event format
+    const debugFirstEvent = async () => {
+      try {
+        console.log("Starting debug of LangGraph events");
+        const testEventStream = await createReactAgent({
+          llm: chatModel,
+          tools: [tool],
+        }).streamEvents(
+          { messages: [{content: "Test", role: "human"}] },
+          { version: "v1" }
+        );
+        
+        for await (const event of testEventStream) {
+          console.log("Example event structure:", JSON.stringify(event, null, 2));
+          break; // Just look at first event
+        }
+      } catch (e) {
+        console.error("Debug event error:", e);
+      }
+    };
+
+    // Run debug function (uncomment to debug)
+    // await debugFirstEvent();
+
     // Create the agent
     const agent = await createReactAgent({
       llm: chatModel,
@@ -463,70 +489,92 @@ export async function POST(
           await messageHistory.addMessage(lastUserMessage);
         }
         
-        // Set a flag to indicate we need to save the AI response
-        // This is to prevent duplicate saves since LangGraph might also be 
-        // saving to message history via the agentWithHistory wrapper
-        let shouldSaveAIResponse = false; // Default to NOT saving manually
+        // Use non-streaming version as fallback
+        const useStreaming = true;
+        
+        if (!useStreaming) {
+          // Non-streaming version for debugging
+          const result = await agentWithHistory.invoke(
+            { messages: validatedMessages, history: [] },
+            { configurable: { sessionId } }
+          );
+          
+          // Get the final response
+          const finalMessages = result.messages;
+          const lastMessage = finalMessages[finalMessages.length - 1];
+          
+          // Save to message history
+          if (lastMessage._getType() === "ai") {
+            await messageHistory.addMessage(lastMessage);
+          }
+          
+          // Return the response directly
+          return NextResponse.json(
+            { content: lastMessage.content },
+            { status: 200 }
+          );
+        }
         
         // Stream the response
         const eventStream = await agentWithHistory.streamEvents(
           { messages: validatedMessages, history: [] },
           { 
-            version: "v2",
-            configurable: { sessionId } // Add sessionId to the configurable options
-          },
+            version: "v1", // Try v1 instead of v2
+            configurable: { sessionId }
+          }
         );
   
         const textEncoder = new TextEncoder();
-       // In your chat/retrieval_agents route
-       const transformStream = new ReadableStream({
-        async start(controller) {
-          let responseContent = "";
-          
-          try {
-            // In your route.ts POST handler, update how you process events
-            for await (const event of eventStream) {
-              try {
-                // Handle different event types from LangGraph
-                if (event.event === "on_chat_model_stream") {
-                  if (event.data?.chunk?.content) {
-                    controller.enqueue(textEncoder.encode(event.data.chunk.content));
-                    responseContent += event.data.chunk.content;
-                  }
-                } 
-                // Add specific handling for tool calls
-                else if (event.event === "on_tool_start" || 
-                        event.event === "on_tool_end" || 
-                        event.event === "on_chain_start" || 
-                        event.event === "on_chain_end") {
-                  // Log but don't send to client
-                  console.log(`LangGraph event: ${event.event}`);
-                }
-              } catch (error) {
-                console.error("Error processing event:", error, "Event:", event);
-              }
-            }
+        const transformStream = new ReadableStream({
+          async start(controller) {
+            let responseContent = "";
             
-            // Only save AI response if needed and if we have content
-            if (responseContent) {
-              await messageHistory.addMessage(new AIMessage(responseContent));
+            try {
+              for await (const chunk of eventStream) {
+                try {
+                  // Log chunk for debugging
+                  console.log("Event type:", chunk.event);
+                  
+                  // Handle chat model streaming events
+                  if (chunk.event === "on_chat_model_stream") {
+                    if (chunk.data && chunk.data.chunk && chunk.data.chunk.content) {
+                      const content = chunk.data.chunk.content;
+                      controller.enqueue(textEncoder.encode(content));
+                      responseContent += content;
+                    }
+                  }
+                } catch (chunkError) {
+                  console.error("Error processing chunk:", chunkError);
+                  // Continue to next chunk instead of failing
+                }
+              }
+              
+              // Save message to history if we have content
+              if (responseContent.trim()) {
+                console.log("Saving AI response to message history:", responseContent.slice(0, 100) + "...");
+                await messageHistory.addMessage(new AIMessage(responseContent));
+              } else {
+                console.warn("No content generated from stream");
+              }
+            } catch (error) {
+              console.error("Error in stream processing:", error);
+              // Send a fallback response so the UI doesn't hang
+              const errorMessage = "Sorry, I encountered an error processing your request. Please try again.";
+              controller.enqueue(textEncoder.encode(errorMessage));
+            } finally {
+              controller.close();
             }
-          } catch (error) {
-            console.error("Stream processing error:", error);
-            // Provide a fallback response on error
-            const errorMessage = "I encountered an error processing your request. Please try again.";
-            controller.enqueue(textEncoder.encode(errorMessage));
-          } finally {
-            controller.close();
-          }
-        },
-      });
+          },
+        });
   
         return new StreamingTextResponse(transformStream);
       } catch (error) {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : String(error);
         console.error("Error in streaming response:", error);
         return NextResponse.json(
-          { error: "Error processing your request" },
+          { error: "Error processing your request: " + errorMessage },
           { status: 500 }
         );
       }
@@ -540,11 +588,6 @@ export async function POST(
           }
         }
         
-        // Set a flag to indicate if we need to save the AI response
-        // This is to prevent duplicate saves since LangGraph might also be 
-        // saving to message history via the agentWithHistory wrapper
-        let shouldSaveAIResponse = false; // Default to NOT saving manually
-        
         // Return the full result with intermediate steps
         const result = await agentWithHistory.invoke(
           { 
@@ -552,15 +595,15 @@ export async function POST(
             history: [],
           },
           {
-            configurable: { sessionId } // Add sessionId to the configurable options
+            configurable: { sessionId }
           }
         );
         
-        // Only save the AI response if we determined we need to manually save
-        if (shouldSaveAIResponse && result.messages.length > 0) {
+        // Save the AI response
+        if (result.messages.length > 0) {
           const lastMessage = result.messages[result.messages.length - 1];
           if (lastMessage._getType() === "ai") {
-            console.log("Manually saving AI response to message history");
+            console.log("Saving AI response to message history");
             await messageHistory.addMessage(lastMessage);
           }
         }
@@ -571,16 +614,22 @@ export async function POST(
           },
           { status: 200 },
         );
-      } catch (error) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : String(error);
         console.error("Error in processing with intermediate steps:", error);
         return NextResponse.json(
-          { error: "Error processing your request with intermediate steps" },
+          { error: "Error processing your request with intermediate steps: " + errorMessage },
           { status: 500 }
         );
       }
     }
   } catch (e: any) {
     console.error("Error in chat processing:", e);
-    return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
+    return NextResponse.json(
+      { error: e.message, stack: e.stack },
+      { status: e.status ?? 500 }
+    );
   }
 }
