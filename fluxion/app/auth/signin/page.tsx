@@ -179,7 +179,7 @@ export default function SignIn() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="text-black appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
                   />
                 </div>
               </div>
@@ -197,7 +197,7 @@ export default function SignIn() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="text-black appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-all duration-300"
                   />
                 </div>
               </div>
