@@ -396,8 +396,8 @@ export async function POST(
     // Initialize the chat model
     const chatModel = new ChatGoogleGenerativeAI({
       model: "gemini-2.0-flash",
-      temperature: 0,
-      maxOutputTokens: 2048,
+      temperature: 0.7,
+      maxOutputTokens: 4096,
     });
 
     // Initialize Supabase client and vector store
